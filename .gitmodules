@@ -1,0 +1,25 @@
+[submodule "sources/all"]
+        path = sources/all
+        url = git@github.com:AndyLavr/all.git
+        branch = master
+        ignore = all
+[submodule "sources/arm"]
+        path = sources/arm
+        url = git@github.com:AndyLavr/arm.git
+        branch = master
+        ignore = all
+[submodule "sources/arm64"]
+        path = sources/arm64
+        url = git@github.com:AndyLavr/arm64.git
+        branch = master
+        ignore = all
+[submodule "sources/x86"]
+        path = sources/x86
+        url = git@github.com:AndyLavr/x86.git
+        branch = master
+        ignore = all
+[submodule "sources/x86_64"]
+        path = sources/x86_64
+        url = git@github.com:AndyLavr/x86_64.git
+        branch = master
+        ignore = all

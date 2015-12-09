@@ -1,0 +1,29 @@
+# Intermediate application files
+*.ap_
+
+# Files for the Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+cache
+build
+out
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log Files
+*.log
+
+#Temporary editor files
+*.bak
+*~
+
+# Project files
+.project
+
+# Include submodules
+sources
