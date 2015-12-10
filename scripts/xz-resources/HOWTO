@@ -4,10 +4,6 @@ To compile xzdec for arm:
 ./configure --host=arm-linux-androideabi --enable-static --disable-shared LDFLAGS=-static
 make LDFLAGS=-all-static
 
-To compile for x86:
-./configure --enable-static --disable-shared "CFLAGS=-m32" "CPPFLAGS=-m32" "CXXFLAGS=-m32" "LDFLAGS=-static -m32"
-make LDFLAGS=-all-static
-
 The xzdec binary can be found in src/xzdec/
 
 xzdec is in the public domain and no license or copyright applies

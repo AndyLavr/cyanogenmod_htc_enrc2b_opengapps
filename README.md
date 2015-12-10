@@ -6,7 +6,7 @@ The fork repository of the Open GApps Project for CyanogenMod HTC One X+ device 
 Getting the latest Open GApps for CyanogenMod HTC One X+ device (enrc2b)
 ---------------
 
-The latest version of pre-built Open GApps can be found at [Download](https://drive.google.com/open?id=0B5ngHZIeNdyTTVlsZkk2Ym9GTGc/ "open_gapps-5.1-enrc2b-***-***.zip")
+The latest version of pre-built Open GApps can be found at [Download](https://drive.google.com/open?id=0B5ngHZIeNdyTTVlsZkk2Ym9GTGc "open_gapps-5.1-enrc2b-***-***.zip")
 
 
 Build your own Open GApps for CyanogenMod HTC One X+ device (enrc2b)
