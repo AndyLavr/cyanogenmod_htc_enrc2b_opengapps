@@ -26,11 +26,13 @@ tee "$build/META-INF/com/google/android/aroma-config" > /dev/null <<'EOFILE'
 #
 
 # ROM Info
-ini_set("rom_name", "Open GApps");
-ini_set("rom_author", "Open GApps Team");
+ini_set("rom_name", "OpenGApps");
+ini_set("rom_author", "enrc2b");
 ini_set("rom_date", zipprop("g.prop", "ro.addon.open_version"));
-ini_set("text_quit", "Exit");
-ini_set("text_next", "Next");
+ini_set("text_quit", "Выход");
+ini_set("text_next", "Далее");
+ini_set("text_back", "Назад");
+ini_set("text_savelog", "Сохранить Лог");
 
 ##############################################
 # UI/Font/Splash
@@ -48,17 +50,17 @@ theme("material_green");
 # Welcome
 ##############################################
 viewbox(
-  "Welcome",
+  "Добро пожаловать",
 
-  "With AROMA Open GApps you can choose which GApps to install!\n\n\n\n" +
-  "Package Information\n\n" +
+  "Этим установщиком OpenGApps Вы можете выбрать какие GApps установить!\n\n\n\n" +
+  "Информация о пакетах\n\n" +
 
-    "   Name\t\t: <b><#scrollbar>" + ini_get("rom_name") + "</#></b>\n"+
-    "   Author\t\t: <b><#scrollbar>" + ini_get("rom_author") + "</#></b>\n"+
-    "   Supported devices: <b><#scrollbar>Any!</#></b>\n"+
-    "   Supported Android: <b><#scrollbar>"+zipprop("g.prop", "ro.addon.platform")+"</#></b>\n"+
-    "   Build date\t: <b><#scrollbar>" + ini_get("rom_date") + " </#></b>\n\n"+
-    "<b>For support and updates visit our site! <#scrollbar>(http://opengapps.org)</#></b>"+"\n\n\n\n",
+    "   Имя\t\t: <b><#scrollbar>" + ini_get("rom_name") + "</#></b>\n"+
+    "   Сборка\t\t: <b><#scrollbar>" + ini_get("rom_author") + "</#></b>\n"+
+    "   Поддерживаемые устройства: <b><#scrollbar>HTC One X+</#></b>\n"+
+    "   Версии Android: <b><#scrollbar>"+zipprop("g.prop", "ro.addon.platform")+"</#></b>\n"+
+    "   Дата сборки\t: <b><#scrollbar>" + ini_get("rom_date") + " </#></b>\n\n"+
+    "<b>Сборка для устройств HTC One X+!            <#scrollbar>(AndyLavr: andy.lavr@gmail.com)</#></b>"+"\n\n\n\n",
 
   "@welcome"
 );
@@ -67,39 +69,29 @@ viewbox(
 # MENU
 ##############################################
 menubox(
-    "Open GApps",
-    "Please select one of the choices below",
+    "OpenGApps HOX+",
+    "Выберите один из приведенных ниже вариантов",
     "@apps",
     "menu.prop",
-    "Customized installation",   "Select which apps you want",     "@personalize",      #-- selected = 1
-    "Complete installation",     "Install the Super package",      "@default",         #-- selected = 2
-    "Exit",              "Exit to recovery",    "@alert"      #-- selected = 3
+    "Настройка установки",   "Выбрать приложения для установки",     "@personalize",      #-- selected = 1
+    "Полная установка",     "Установка Super пакета",      "@default",         #-- selected = 2
+    "Выход",              "Возврат в рекавери",    "@alert"      #-- selected = 3
 );
 
 #Exit
 if prop("menu.prop", "selected")=="3" then
-  if
-    confirm(
-      "Exit",
-      "Are you sure want to exit the Installer?",
-      "@alert"
-    )=="yes"
-  then
     exit("");
-  endif;
-
-  back("1");
 endif;
 
 ##############################################
 # Load Previous Choices
 ##############################################
 checkviewbox(
-  "Load Previous Choices",
-  "Load Previous Choices\n\n\n\n\n<b>Do you want to load your choices from a previous install?</b>\n\n",
+  "Импорт настроек",
+  "Загрузка сохраненных настроек\n\n\n\n\n<b>Вы хотите импортировать настройки установщика?</b>\n\n",
   "@welcome",
 
-  "Load choices.", "1", "loadselections"
+  "Загрузить настройки.", "1", "loadselections"
 );
 
 if
@@ -124,21 +116,21 @@ if prop("menu.prop", "selected")=="1" then
 # Customized installation
 ##############################################
 form(
-    "Apps",
-    "Please select which apps you want to include or exclude</#>",
+    "Приложения",
+    "Пожалуйста, выберите, какие приложения вы хотите включить или исключить</#>",
     "@default",
     aromagapps.prop,
-    "inclorexcl",     "Choose to include or exclude the apps below",        "",                    "group",
-      "1",     "Include",   "Choose the apps you WANT installed from the list below.",             "select.selected",
-      "0",     "Exclude",   "Choose the apps you DON'T WANT installed from the list below.",       "select",
+    "inclorexcl",     "Выберите ваш вариант",        "",                    "group",
+      "1",     "Включить",   "Выберите приложения, которые вы хотите установить из списка ниже.",             "select.selected",
+      "0",     "Исключить",   "Выберите приложения, которые вы хотите исключить из списка ниже",       "select",
 
-    "gapps",     "Choose GApps which you want to add on install/exclude list",        "",                                         "group",
+    "gapps",     "Выберите Gapps которые вы хотите установить/исключить",        "",                                         "group",
       "AndroidPay",     "<b>Android Pay</b>",       "",                      "check",
       "AndroidForWork",     "<b>Android For Work</b>",       "",                      "check",
       "Books",     "<b>Google Play Books</b>",       "",                      "check",
       "CalculatorGoogle",     "<b>Google Calculator</b>",       "",                      "check",
       "CalendarGoogle",     "<b>Google Calendar</b>",       "",                      "check",
-      "CalSync",     "<b>Google Calendar Sync</b>",       "(installed by default when Google Calendar is NOT being installed)",                      "check",
+      "CalSync",     "<b>Google Calendar Sync</b>",       "(устанавливается по умолчанию, когда Календарь Google не установлен)",                      "check",
       "CameraGoogle",     "<b>Google Camera</b>",       "",                      "check",
       "Chrome",     "<b>Google Chrome</b>",       "",                      "check",
       "ClockGoogle",     "<b>Google Clock</b>",       "",                      "check",
@@ -153,7 +145,7 @@ form(
       "FaceDetect",     "<b>Face Detection for Media</b>",       "",                      "check",
       "FaceUnlock",     "<b>Face Unlock</b>",       "",                      "check",
       "Fitness",     "<b>Google Fit</b>",       "",                      "check",
-      "GCS",     "<b>Google Connectivity Services</b>",       "To Exclude BOTH Google Connectivity Services AND Project Fi by Google <#f00>OR</#> To Include Google Connectivity Services",                      "check",
+      "GCS",     "<b>Google Connectivity Services</b>",       "Выключает Google Connectivity Services и Project Fi Google <#f00>ИЛИ</#> Включает Google Connectivity Services",                      "check",
       "Gmail",     "<b>Gmail</b>",       "",                      "check",
       "GoogleNow",     "<b>Google Now Launcher</b>",       "",                      "check",
       "GooglePlus",     "<b>Google+</b>",       "",                      "check",
@@ -165,7 +157,7 @@ form(
       "KeyboardGoogle",     "<b>Google Keyboard</b>",       "",                      "check",
       "Korean",     "<b>Google Korean Input</b>",       "",                      "check",
       "Maps",     "<b>Google Maps</b>",       "",                      "check",
-      "Messenger",     "<b>Messenger</b>",       "(not installed on tablet devices)",                      "check",
+      "Messenger",     "<b>Messenger</b>",       "(не устанавливается на Tablet устройства)",                      "check",
       "Movies",     "<b>Google Play Movies & TV</b>",       "",                      "check",
       "Music",     "<b>Google Play Music</b>",       "",                      "check",
       "NewsStand",     "<b>Google Play Newsstand</b>",       "",                      "check",
@@ -176,8 +168,8 @@ form(
       "ProjectFi",     "<b>Project Fi by Google</b>",       "",                      "check",
       "Sheets",     "<b>Google Sheets</b>",       "",                      "check",
       "Slides",     "<b>Google Slides</b>",       "",                      "check",
-      "Search",     "<b>Google Search</b>",       "To Exclude BOTH Google Search AND Google Now Launcher <#f00>OR</#> To Include Google Search",                      "check",
-      "Speech",     "<b>Offline Speech Files</b>",       "(Required for offline voice dicatation support)",                      "check",
+      "Search",     "<b>Google Search</b>",       "Выключает Google Search и Google Now Launcher <#f00>ИЛИ</#> Влючает Google Search",                      "check",
+      "Speech",     "<b>Offline Speech Files</b>",       "(Требуется для поддержки голосового ввода)",                      "check",
       "Street",     "<b>Google Street View</b>",       "",                      "check",
       "TagGoogle",     "<b>Google NFC Tags</b>",       "",                      "check",
       "Talkback",     "<b>Talkback</b>",       "",                      "check",
@@ -196,11 +188,11 @@ if prop("menu.prop", "selected")=="2" then
 endif;
 
 form(
-    "Default removal bypass",
-    "Careful, you can override the default removal of Stock/AOSP applications below. Please only select if you are sure you want them installed alongside the Google replacement.",
+    "Удаление приложений",
+    "Внимание! Тут вы можете выбрать для удаления установленные пакеты Stock/AOSP. Не заменяйте приложения если вы не уверены в вашем выборе!",
     "@default",
     bypass.prop,
-    "bypassrem",     "Bypass the automatic removal of Stock/AOSP apps",        "",     "group",
+    "bypassrem",     "Не заменять приложения",        "",     "group",
       "+Browser",     "<b>+Browser</b>",      "",    "check",
       "+Email",     "<b>+Email</b>",      "",        "check",
       "+Gallery",     "<b>+Gallery</b>",      "",    "check",
@@ -210,16 +202,16 @@ form(
 );
 
 form(
-    "Remove",
-    "Please select which Stock/AOSP apps you want to remove\n</#>",
+    "Удалить",
+    "Пожалуйста выберите Stock/AOSP приложения для удаления\n</#>",
     "@default",
     rem.prop,
-    "remove",     "Choose apps which you want to remove",        "",                                         "group",
+    "remove",     "Приложения для удаления",        "",                                         "group",
       "BasicDreams",     "<b>Basic Dreams Live Wallpaper</b>",       "",                      "check",
       "Browser",     "<b>Stock/AOSP Browser</b>",       "",                      "check",
-      "CalendarStock",     "<b>Stock/AOSP Calendar</b>",       "(automatically removed when Google Calendar is installed)",                      "check",
-      "CameraStock",     "<b>Stock/AOSP/Moto Camera</b>",       "(automatically removed when Google Camera is installed)",                      "check",
-      "ClockStock",     "<b>Stock/AOSP Clock</b>",       "(automatically removed when Google Clock is installed)",                      "check",
+      "CalendarStock",     "<b>Stock/AOSP Calendar</b>",       "(автоматически удаляется если Google Calendar установлен)",                      "check",
+      "CameraStock",     "<b>Stock/AOSP/Moto Camera</b>",       "(автоматически удаляется если Google Camera установлена)",                      "check",
+      "ClockStock",     "<b>Stock/AOSP Clock</b>",       "(автоматически удаляется если Google Clock установлен)",                      "check",
       "CMAccount",     "<b>CyanogenMod Account</b>",       "",                      "check",
       "CMAudioFX",     "<b>CyanogenMod AudioFX</b>",       "",                      "check",
       "CMEleven",     "<b>CyanogenMod Music</b>",       "",                      "check",
@@ -227,17 +219,17 @@ form(
       "CMSetupWizard",     "<b>CyanogenMod Setup Wizard</b>",       "",                      "check",
       "CMUpdater",     "<b>CyanogenMod Updater</b>",       "",                      "check",
       "CMWallpapers",     "<b>CyanogenMod Wallpapers</b>",       "",                      "check",
-      "DashClock",     "<b>DashClock Widget</b>",       "(a widget found in certain ROMs)",                      "check",
+      "DashClock",     "<b>DashClock Widget</b>",       "(присутствует в некоторых прошивках)",                      "check",
       "Email",     "<b>Stock/AOSP Email</b>",       "",                      "check",
-      "ExchangeStock",     "<b>Stock/AOSP Exchange Services</b>",       "(automatically removed when Google Exchange Services is installed)",                      "check",
-      "FMRadio",     "<b>Stock/AOSP FM Radio</b>",       "(not found on all devices or ROM's)",                      "check",
+      "ExchangeStock",     "<b>Stock/AOSP Exchange Services</b>",       "(автоматически удаляется если Google Exchange Services установлен)",                      "check",
+      "FMRadio",     "<b>Stock/AOSP FM Radio</b>",       "(отсутствует во всех прошивках)",                      "check",
       "Galaxy",     "<b>Galaxy Live Wallpaper</b>",       "",                      "check",
       "Gallery",     "<b>Stock/AOSP Gallery</b>",       "",                      "check",
       "HoloSpiral",     "<b>Holo Spiral Live Wallpaper</b>",       "",                      "check",
-      "KeyboardStock",     "<b>Stock/AOSP Keyboard</b>",       "(automatically removed when Google Keyboard is installed)",                      "check",
+      "KeyboardStock",     "<b>Stock/AOSP Keyboard</b>",       "(автоматически удаляется если Google Keyboard установлена)",                      "check",
       "Launcher",     "<b>Stock/AOSP Launcher(s)</b>",       "",                      "check",
       "LiveWallpapers",     "<b>Live Wallpapers</b>",       "",                      "check",
-      "LockClock",     "<b>Lock Clock</b>",       "(a widget found in certain ROMs)",                      "check",
+      "LockClock",     "<b>Lock Clock</b>",       "(присутствует в некоторых прошивках)",                      "check",
       "MMS",     "<b>Stock/AOSP MMS</b>",       "",                      "check",
       "NoiseField",     "<b>NoiseField Live Wallpaper</b>",       "",                      "check",
       "Phasebeam",     "<b>Phasebeam Live Wallpaper</b>",       "",                      "check",
@@ -246,20 +238,20 @@ form(
       "PicoTTS",     "<b>Stock/AOSP Text-to-Speech</b>",       "",                      "check",
       "SimToolKit",     "<b>Stock/AOSP Sim ToolKit</b>",       "",                      "check",
       "Studio",     "<b>Stock/AOSP Movie Studio</b>",       "",                      "check",
-      "SykoPath",     "<b>SykoPath Layers Manager</b>",       "(found in certain ROM's)",                      "check",
+      "SykoPath",     "<b>SykoPath Layers Manager</b>",       "(отсутствует во всех прошивках)",                      "check",
       "Terminal",     "<b>Terminal</b>",       "",                      "check",
-      "Themes",     "<b>CyanogenMod Theme Engine</b>",       "(Will break the link in Settings to Themes!)",                      "check",
+      "Themes",     "<b>CyanogenMod Theme Engine</b>",       "(Разрывает связь с настройками темы!)",                      "check",
       "VisualizationWallpapers",     "<b>Visualization Live Wallpaper</b>",       "",                      "check",
       "WhisperPush",     "<b>WhisperPush</b>",       "",                      "check"
 );
 form(
-    "Advanced Options",
-    "Some advanced options that most likely don't need to be used.\n</#>",
+    "Расширенные настройки",
+    "Некоторые дополнительные настройки, которые, скорее всего, не нужно использовать.\n</#>",
     "@default",
     extra.prop,
-    "extra",     "Advanced Options",        "",                                         "group",
-      "ex1",     "<b>No Debug Log</b>",       "To disable debugging",                      "check",
-      "ex2",     "<b>Test</b>",       "To perform a simulation generating a detailed log, but <u>WILL NOT MAKE ANY CHANGES</u> to your device.",                      "check"
+    "extra",     "Расширенные настройки",        "",                                         "group",
+      "ex1",     "<b>Не использовать лог отладки</b>",       "Выключить отладку",                      "check",
+      "ex2",     "<b>Тест</b>",       "Тестирование установки в лог файл, <u>НЕ ВНОСИТ ИЗМЕНЕНИЙ</u> в прошивку.",                      "check"
 );
 
 ##############################################
@@ -862,7 +854,7 @@ writetmpfile(".gapps-config", getvar("gapps"));
 
 textbox(
     "gapps-config",
-    "Your gapps-config file.",
+    "Ваш gapps-config файл.",
     "@update",
     read("tmp/aroma/.gapps-config")
 );
@@ -871,11 +863,11 @@ textbox(
 # Save Choices
 ##############################################
 checkviewbox(
-  "Save Choices",
-  "Save Choices: /sdcard/Open-GApps\n\n\n\n\n<b>Do you want to save your choices? It will save time in future installations.</b>\n\n",
+  "Сохранение настроек",
+  "Сохранить настройки в: /sdcard/Open-GApps\n\n\n\n\n<b>Сохранить ваши настройки установки? Это сэкономит время в будущих установках.</b>\n\n",
   "@welcome",
 
-  "Save Choices", "1", "saveselections"
+  "Сохранить настройки", "1", "saveselections"
 );
 if
     getvar("saveselections")=="1"
@@ -884,34 +876,34 @@ if
 endif;
 
 # Pre-Install
-ini_set("text_next", "Install GApps");
+ini_set("text_next", "Установка GApps");
 viewbox(
-  "Save config and perform GApps install.",
-  "Are you ready to install GApps based on your preferences?\n\n\n\n\n" +
-  "Press <b>Install GApps</b> to perform the install.\n\n" +
-  "If you want to review or change any of your settings, press <b>Back</b>.",
+  "Выполнить установку GApps.",
+  "Готовы ли вы установить GAPPS на основе ваших предпочтений?\n\n\n\n\n" +
+  "Нажмите <b>Установить GApps</b> для начала установки.\n\n" +
+  "Если вы хотите просмотреть или изменить какие-либо настройки, нажмите <b>Назад</b>.",
   "@install"
 );
 
 # Install
-ini_set("text_next", "Next");
+ini_set("text_next", "Далее");
 install(
-  "Installing",
-  "<b>Open GApps</b> are being installed.\n\n" +
-  "Please wait until the process is finished",
+  "Установка",
+  "<b>OpenGApps</b> устанавливаются...\n\n" +
+  "Пожалуйста, подождите, пока процесс не будет завершен",
   "@install",
-  "Press Next to continue."
+  "Нажмите Далее, чтобы продолжить.."
 );
 
 # Post-Install
-ini_set("text_next", "Finish");
+ini_set("text_next", "Завершить");
 checkviewbox(
-  "Installed",
-  "<b>Congratulations!</b>\n\n\n\n\n" +
-  "Open GApps has been installed into your device.",
+  "Установлено",
+  "<b>Поздравляем!</b>\n\n\n\n\n" +
+  "Open GApps установлены.",
   "@welcome",
 
-  "Reboot your device now.", "0", "reboot_it"
+  "Перегрузите систему.", "0", "reboot_it"
 );
 
 #Reboot
