@@ -261,21 +261,6 @@ buildlib() {
   if [ "$apkarch" = "arm" ]; then
     libsearchpath="lib/armeabi*/*" #mind the wildcard
     libfallbacksearchpath=""
-  elif [ "$apkarch" = "arm64" ]; then
-    libsearchpath="lib/arm64*/*" #mind the wildcard
-    libfallbacksearchpath="lib/armeabi*/*" #mind the wildcard
-  elif [ "$apkarch" = "x86" ]; then
-    libsearchpath="lib/x86/*"
-    libfallbacksearchpath=""
-  elif [ "$apkarch" = "x86_64" ]; then
-    libsearchpath="lib/x86_64/*"
-    libfallbacksearchpath="lib/x86/*"
-  elif [ "$apkarch" = "mips" ]; then
-    libsearchpath="lib/mips/*"
-    libfallbacksearchpath=""
-  elif [ "$apkarch" = "mips64" ]; then
-    libsearchpath="lib/mips64/*"
-    libfallbacksearchpath="lib/mips/*"
   fi
   get_fallback_arch "$apkarch"
   if [ "$(basename "$targetdir")" = "common" ]; then	#if we are installing systemwide libs
