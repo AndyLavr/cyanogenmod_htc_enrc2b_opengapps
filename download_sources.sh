@@ -18,12 +18,6 @@ argument() {
     arm)
       modules="all $1"
     ;;
-    arm64|x86)
-      modules="all arm $1"
-    ;;
-    x86_64)
-      modules="all arm x86 $1"
-    ;;
     --shallow)
       depth="--depth 1"
     ;;
@@ -31,7 +25,7 @@ argument() {
 }
 
 depth=""
-modules="all arm arm64 x86 x86_64"
+modules="all arm"
 
 for arg in "$@"; do
   argument $arg
