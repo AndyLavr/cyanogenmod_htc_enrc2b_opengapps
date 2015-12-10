@@ -57,7 +57,6 @@ aromaupdatebinary() {
 bundlexz() {
   case "$ARCH" in #Include our own 32-bit xz-decompression binary
     arm*) xzbin="xzdec-arm";;
-    x86*) xzbin="xzdec-x86";;
   esac
   copy "$SCRIPTS/xz-resources/$xzbin" "$build/xzdec"
   EXTRACTFILES="$EXTRACTFILES xzdec"
@@ -152,7 +151,7 @@ createzip() {
   echo "All components are ready."
 
   unsignedzip="$BUILD/$ARCH/$API/$VARIANT.zip"
-  signedzip="$OUT/open_gapps-$ARCH-$PLATFORM-$VARIANT-$DATE.zip"
+  signedzip="$OUT/open_gapps-$PLATFORM-enrc2b-$VARIANT-$DATE.zip"
 
   if [ -f "$unsignedzip" ]; then
     rm "$unsignedzip"
