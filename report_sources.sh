@@ -30,9 +30,6 @@ argument(){
     nosig)  nosig="nosig";;
     all)    filterapparchs="${filterapparchs} all";;
     arm)    filterapparchs="${filterapparchs} arm";;
-    arm64)  filterapparchs="${filterapparchs} arm64";;
-    x86)    filterapparchs="${filterapparchs} x86";;
-    x86_64) filterapparchs="${filterapparchs} x86_64";;
     *-*)    buildarch="$(echo "$1" | cut -f 1 -d '-')"
             maxsdk="$(echo "$1" | cut -f 2 -d '-')";;
     *)      maxsdk="$1";;
@@ -55,11 +52,11 @@ if [ -z "$hash" ] && [ -z "$nohelp" ]; then
 * No arguments: Show all packages of all architectures and SDK-levels
 === OR ===
 * SDK-level as a argument:  Show packages that are eligable to be picked when building for specified SDK-level
-* all|arm|arm64|x86|x86_64: Show only packages of given architecture
+* all|arm: Show only packages of given architecture
 * These arguments can be combined in any order and multiple architectures can be supplied
 * Example command: './report_sources.sh 22 all arm arm64'
 === OR ===
-* (all|arm|arm64|x86|x86_64)-(SDK-level): Show packages that will be selected when building for specified architecture and SDK-level
+* (all|arm)-(SDK-level): Show packages that will be selected when building for specified architecture and SDK-level
 * Example command: './report_sources.sh arm-22'
 === AND ===
 * hash: If you add hash as an extra argument, the result will not be returned as human readable, but with a unique hash for the resultset
@@ -70,8 +67,6 @@ if [ -z "$hash" ] && [ -z "$nohelp" ]; then
 fi
 
 case "$buildarch" in
-  arm64|x86)  fallbackarchs="arm";;
-  x86_64) fallbackarchs="x86 arm";;
   *)      fallbackarchs="";;
 esac
 
