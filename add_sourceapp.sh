@@ -100,19 +100,8 @@ $notinzip"
 
   #We manually check for each of our set of supported architectures
   #We assume NO universal packages for 32vs64 bit, so start with the 'highest' architectures first, if it matches one of those, we will NOT add it to a lower architecture
-  if echo "$architectures" | grep -q "arm64"; then #no space, all arm64 types are valid
-    installapk "arm64"
-  else
-    if echo "$architectures" | grep -q "armeabi"; then #no space, all armearbi types are valid
+  if echo "$architectures" | grep -q "armeabi"; then #no space, all armearbi types are valid
       installapk "arm"
-    fi
-  fi
-  if echo "$architectures" | grep -q "x86_64 "; then
-    installapk "x86_64"
-  else
-    if echo "$architectures" | grep -q "x86 "; then
-      installapk "x86"
-    fi
   fi
   if echo "$architectures" | grep -q "all"; then #no space (single entry)
     installapk "all"
@@ -136,20 +125,6 @@ for argument in "$@"; do
         else
           echo "ERROR: File $file not a valid APK!"
         fi;;
-      #*x86-64*)
-      #  install -D "$file" "$SOURCES/x86_64/lib64/$(basename "$file")"
-      #  echo "SUCCESS: Added $file to x86_64/lib64/";;
-      #*aarch64*)
-      #  if [ "$(basename "$file")" = "libfrsdk.so" ]; then
-      #    install -D "$file" "$SOURCES/arm/vendor/lib64/$(basename "$file")"
-      #    echo "SUCCESS: Added $file to arm64/vendor/lib64/"
-      #  else
-      #    install -D "$file" "$SOURCES/arm64/lib64/$(basename "$file")"
-      #    echo "SUCCESS: Added $file to arm64/lib64/"
-      #  fi;;
-      #*32-bit*intel*)
-      #  install -D "$file" "$SOURCES/x86/lib/$(basename "$file")"
-      #  echo "SUCCESS: Added $file to x86/lib/";;
       #*32-bit*arm*)
       #  if [ "$(basename "$file")" = "libfrsdk.so" ]; then
       #    install -D "$file" "$SOURCES/arm/vendor/lib/$(basename "$file")"
@@ -166,17 +141,8 @@ for argument in "$@"; do
   fi
 done
 
-#Full list of 'our' architecture classification compared to the Android NDK architectures:
+#List of 'our' architecture classification compared to the Android NDK architectures:
 #arm:
 #	armeabi - ARMv5TE based CPU with software floating point operations;
 #	armeabi-v7a - ARMv7 based devices with hardware FPU instructions
-#arm64:
-#	arm64-v8a - ARMv8 AArch64 instruction set
-#x86:
-#	x86 - IA-32 instruction set
-#x86_64:
-#	x86_64 - Intel64 instruction set
 #
-#unsupported at the moment:
-#mips - MIPS32 instruction set
-#mips64 - MIPS64 instruction set
