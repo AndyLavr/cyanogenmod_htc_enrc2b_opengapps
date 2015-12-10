@@ -343,6 +343,10 @@ ui_print '      / __| /_\ | _ \ _ \/ __|';
 ui_print '     | (_ |/ _ \|  _/  _/\__ \';
 ui_print '      \___/_/ \_\_| |_|  |___/';
 ui_print '##############################';
+ui_print '## For CyanogenMod CM-12.1 ###';
+ui_print '## and HTC One X+ (enrc2b)  ##';
+ui_print ' Build on andy.lavr@gmail.com ';
+ui_print '##############################';
 ui_print " ";
 ui_print "$installer_name$gapps_version";
 ui_print " ";
@@ -504,9 +508,6 @@ EOFILE
 printf 'if ! (echo "$device_architecture" | '>> "$build/META-INF/com/google/android/update-binary"
 case "$ARCH" in
   arm)    printf 'grep -i "armeabi" | grep -qiv "arm64"'>> "$build/META-INF/com/google/android/update-binary";;
-  arm64)  printf 'grep -qi "arm64"'>> "$build/META-INF/com/google/android/update-binary";;
-  x86)    printf 'grep -i "x86" | grep -qiv "x86_64"'>> "$build/META-INF/com/google/android/update-binary";;
-  x86_64) printf 'grep -qi "x86_64"'>> "$build/META-INF/com/google/android/update-binary";;
 esac
 tee -a "$build/META-INF/com/google/android/update-binary" > /dev/null <<'EOFILE'
 ); then
