@@ -2,9 +2,11 @@
 The fork repository of the Open GApps Project for CyanogenMod HTC One X+ device (enrc2b)
 
 
+
 Getting the latest Open GApps for CyanogenMod HTC One X+ device (enrc2b)
 ---------------
-The latest version of pre-built Open GApps can be found at https://drive.google.com/open?id=0B5ngHZIeNdyTTVlsZkk2Ym9GTGc
+
+The latest version of pre-built Open GApps can be found at [Download](https://drive.google.com/open?id=0B5ngHZIeNdyTTVlsZkk2Ym9GTGc/ "open_gapps-5.1-enrc2b-***-***.zip")
 
 
 Build your own Open GApps for CyanogenMod HTC One X+ device (enrc2b)
@@ -21,7 +23,7 @@ You can also use this command to update at a later moment the sources to the mos
 ./download_sources.sh [--shallow] [arch]
 ```
 * ```--shallow``` will order to fetch only the latest snapshot of the APKs (reduces space used and amount of data to be retrieved by git, by not fetching the APKs' history)
-* ```arch``` can be one of the following "arm, arm64, x86, x86_64" to fetch only data required for specified architecture (note that fallback architectures will be be fetched too)
+* ```arch``` can be one of the following "arm" to fetch only data required for specified architecture (note that fallback architectures will be be fetched too)
 
 To build Open GApps for all platforms and all android releases:
 ```
