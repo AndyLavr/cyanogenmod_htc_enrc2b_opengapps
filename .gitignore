@@ -27,3 +27,5 @@ local.properties
 
 # Include submodules
 sources
+sources/all
+sources/arm
