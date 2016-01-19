@@ -255,7 +255,7 @@ set_perm() {
 set_perm_recursive() {
   dirs=$(echo "$@" | awk '{ print substr($0, index($0,$5)) }');
   for i in $dirs; do
-    chown -R "$1.$2" "$i"; chown -R "$1:$2" "$i";
+    chown -R "$1:$2" "$i";
     find "$i" -type d -exec chmod "$3" {} +;
     find "$i" -type f -exec chmod "$4" {} +;
   done;

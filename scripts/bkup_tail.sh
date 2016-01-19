@@ -60,7 +60,7 @@ case "$1" in
     # Fix ownership/permissions and clean up after backup and restore from /sdcard
     find /system/vendor/pittpatt -type d -exec chown 0.2000 '{}' \; # Change pittpatt folders to root:shell per Google Factory Settings
     for i in $(list_files); do
-      busybox chown root.root "/system/$i"
+      busybox chown root:root "/system/$i"
       busybox chmod 644 "/system/$i"
       busybox chmod 755 $(busybox dirname "/system/$i")
     done
