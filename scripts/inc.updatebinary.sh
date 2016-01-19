@@ -127,12 +127,11 @@ exxit() {
   fi;
   find /tmp/* -maxdepth 0 ! -name 'recovery.log' -exec rm -rf {} +;
   set_progress 1.0;
-  ui_print "- Unmounting /system, /data, /cache, /persist";
+  ui_print "- Unmounting $mounts";
   ui_print " ";
-  umount /system;
-  umount /data;
-  umount /cache;
-  umount /persist;
+  for m in $mounts; do
+    umount "$m"
+  done
   exit "$1";
 }
 
@@ -343,24 +342,38 @@ ui_print '      / __| /_\ | _ \ _ \/ __|';
 ui_print '     | (_ |/ _ \|  _/  _/\__ \';
 ui_print '      \___/_/ \_\_| |_|  |___/';
 ui_print '##############################';
-ui_print '## For CyanogenMod CM-12.1 ###';
-ui_print '## and HTC One X+ (enrc2b)  ##';
-ui_print ' Build on andy.lavr@gmail.com ';
+ui_print 'For CyanogenMod CM-12.1       ';
+ui_print 'and HTC One X+ (enrc2b)       ';
+ui_print 'Build on andy.lavr@gmail.com  ';
 ui_print '##############################';
 ui_print " ";
 ui_print "$installer_name$gapps_version";
 ui_print " ";
-ui_print "- Mounting /system, /cache, /data, /persist";
-ui_print " ";
-set_progress 0.01;
-mount /system;
-mount /cache;
-mount /data;
-mount /persist;
+mounts=""
+if [ -d /system ] && ! mountpoint -q /system; then
+  mounts="/system $mounts"
+fi
+if [ -d /persist ] && ! mountpoint -q /persist; then
+  mounts="/persist $mounts"
+fi
+if [ -d /data ] && ! mountpoint -q /data; then
+  mounts="/data $mounts"
+fi
+if [ -d /cache ] && ! mountpoint -q /cache; then
+  mounts="/cache $mounts"
+fi
+ui_print "- Mounting $mounts";
+ ui_print " ";
+ set_progress 0.01;
+for m in $mounts; do
+  mount "$m"
+done
+
 mount -o rw,remount /system;
 mount -o rw,remount /system /system;
 mount -o rw,remount /;
 mount -o rw,remount / /;
+
 # _____________________________________________________________________________________________________________________
 #                                                  Gather Device & GApps Package Information
 if [ -e "/system/build.prop" ]; then
