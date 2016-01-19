@@ -252,8 +252,10 @@ form(
     "@default",
     extra.prop,
     "extra",     "Расширенные настройки",        "",                                         "group",
-      "ex1",     "<b>Не использовать лог отладки</b>",       "Выключить отладку",                      "check",
-      "ex2",     "<b>Тест</b>",       "Тестирование установки в лог файл, <u>НЕ ВНОСИТ ИЗМЕНЕНИЙ</u> в прошивку.",                      "check"
+    "exdebug",   "<b>Не использовать лог отладки</b>",       "Выключить отладку",                      "check",
+    "extest",    "<b>Тест</b>",       "Тестирование установки в лог файл, <u>НЕ ВНОСИТ ИЗМЕНЕНИЙ</u> в прошивку.",                      "check",
+    "exswype",   "<b>Пропуск SwypeLibs</b>",       "Пропустить установку Google Swype libraries для AOSP клавиатуры",                      "check",
+    "exclean",   "<b>Очистка принудительная</b>",       "Игнорировать установку на грязную систему <u>НЕ ВЫВОДИТЬ СООБЩЕНИЕ ПРИ ОШИБКАХ</u>",                      "check"
 );
 
 ##############################################
@@ -263,14 +265,24 @@ setvar("gapps","");
 
 # ADVANCED OPTIONS
 if
-  prop("extra.prop", "ex1")=="1"
+  prop("extra.prop", "exdebug")=="1"
 then
   appendvar("gapps", "NoDebug\n");
 endif;
 if
-  prop("extra.prop", "ex2")=="1"
+  prop("extra.prop", "extest")=="1"
 then
   appendvar("gapps", "Test\n");
+endif;
+if
+  prop("extra.prop", "exswype")=="1"
+then
+  appendvar("gapps", "skipswypelibs\n");
+endif;
+if
+  prop("extra.prop", "exclean")=="1"
+then
+  appendvar("gapps", "forceclean\n");
 endif;
 
 # INCLUDE/EXCLUDE
