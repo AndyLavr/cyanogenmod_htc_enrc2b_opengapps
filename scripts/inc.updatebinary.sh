@@ -985,7 +985,7 @@ fi;
 # NOTICE: Only for Google Keyboard we need to take KitKat support into account, others are only Lollipop+
 ignoregooglecontacts="true"
 for f in $contactsstock_list; do
-  if [ -e "$f" ]; then
+  if [ -e "/system/$f" ]; then
     ignoregooglecontacts="false"
     break; #at least 1 aosp stock file is present
   fi
@@ -1002,7 +1002,7 @@ fi
 
 #ignoregoogledialer="true"
 #for f in $dialerstock_list; do
-#  if [ -e "$f" ]; then
+#  if [ -e "/system/$f" ]; then
 #    ignoregoogledialer="false"
 #    break; #at least 1 aosp stock file is present
 #  fi
@@ -1019,7 +1019,7 @@ fi
 
 ignoregooglekeyboard="true"
 for f in $keyboardstock_list; do
-  if [ -e "$f" ]; then
+  if [ -e "/system/$f" ]; then
     ignoregooglekeyboard="false"
     break; #at least 1 aosp stock file is present
   fi
@@ -1038,7 +1038,7 @@ fi
 
 ignoregooglepackageinstaller="true"
 for f in $packageinstallerstock_list; do
-  if [ -e "$f" ]; then
+  if [ -e "/system/$f" ]; then
     ignoregooglepackageinstaller="false"
     break; #at least 1 aosp stock file is present
   fi
@@ -1055,7 +1055,7 @@ fi
 
 ignoregoogletag="true"
 for f in $tagstock_list; do
-  if [ -e "$f" ]; then
+  if [ -e "/system/$f" ]; then
     ignoregoogletag="false"
     break; #at least 1 aosp stock file is present
   fi
@@ -1072,7 +1072,7 @@ fi
 
 ignoregooglewebview="true"
 for f in $webviewstock_list; do
-  if [ -e "$f" ]; then
+  if [ -e "/system/$f" ]; then
     ignoregooglewebview="false"
     break; #at least 1 aosp stock file is present
   fi
