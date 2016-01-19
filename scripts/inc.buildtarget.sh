@@ -88,6 +88,8 @@ launcher
 mms
 picotts"
 
+miniremove=""
+
 case "$ARCH" in
   *)             LIBFOLDER="lib";;
 esac
