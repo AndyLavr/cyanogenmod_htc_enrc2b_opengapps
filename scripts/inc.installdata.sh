@@ -197,6 +197,8 @@ browser_list="
 app/Browser'"$REMOVALSUFFIX"'
 app/BrowserProviderProxy'"$REMOVALSUFFIX"'
 app/Chromium'"$REMOVALSUFFIX"'
+priv-app/BLUOpera'"$REMOVALSUFFIX"'
+priv-app/BLUOperaPreinstall'"$REMOVALSUFFIX"'
 ";
 
 basicdreams_list="
@@ -207,12 +209,14 @@ app/BasicDreams'"$REMOVALSUFFIX"'
 calculatorstock_list="
 app/Calculator'"$REMOVALSUFFIX"'
 app/ExactCalculator'"$REMOVALSUFFIX"'
+app/FineOSCalculator'"$REMOVALSUFFIX"'
 ";
 
 # Must be used when GoogleCalendar is installed
 calendarstock_list="
 app/Calendar'"$REMOVALSUFFIX"'
 priv-app/Calendar'"$REMOVALSUFFIX"'
+app/FineOSCalendar'"$REMOVALSUFFIX"'
 ";
 
 # Must be used when GoogleCamera is installed
@@ -224,10 +228,12 @@ priv-app/Camera2'"$REMOVALSUFFIX"'
 app/MotCamera'"$REMOVALSUFFIX"'
 priv-app/MotCamera'"$REMOVALSUFFIX"'
 app/Snap'"$REMOVALSUFFIX"'
+app/FineOSCamera'"$REMOVALSUFFIX"'
 ";
 
 clockstock_list="
 app/DeskClock'"$REMOVALSUFFIX"'
+app/FineOSDeskClock'"$REMOVALSUFFIX"'
 ";
 
 cmaccount_list="
@@ -263,6 +269,7 @@ app/CMWallpapers'"$REMOVALSUFFIX"'
 # Must be used when Google Contacts is installed
 contactsstock_list="
 priv-app/Contacts'"$REMOVALSUFFIX"'
+priv-app/FineOSContacts'"$REMOVALSUFFIX"'
 ";
 
 dashclock_list="
@@ -276,6 +283,7 @@ app/DocumentsUI'"$REMOVALSUFFIX"'
 # Must be used when Google Dialer is installed
 #dialerstock_list="
 #priv-app/Dialer'"$REMOVALSUFFIX"'
+#priv-app/FineOSDialer'"$REMOVALSUFFIX"'
 #";
 
 email_list="
@@ -307,6 +315,7 @@ app/MotGallery'"$REMOVALSUFFIX"'
 priv-app/MotGallery'"$REMOVALSUFFIX"'
 app/MediaShortcuts'"$REMOVALSUFFIX"'
 priv-app/MediaShortcuts'"$REMOVALSUFFIX"'
+priv-app/FineOSGallery'"$REMOVALSUFFIX"'
 ";
 
 holospiral_list="
@@ -316,6 +325,9 @@ app/HoloSpiralWallpaper'"$REMOVALSUFFIX"'
 # Must be used when GoogleKeyboard is installed
 keyboardstock_list="
 app/LatinIME'"$REMOVALSUFFIX"'
+priv-app/BLUTouchPal'"$REMOVALSUFFIX"'
+priv-app/BLUTouchPalPortuguesebrPack'"$REMOVALSUFFIX"'
+priv-app/BLUTouchPalSpanishLatinPack'"$REMOVALSUFFIX"'
 ";
 
 launcher_list="
@@ -327,6 +339,7 @@ app/LiquidLauncher'"$REMOVALSUFFIX"'
 app/Paclauncher'"$REMOVALSUFFIX"'
 app/SlimLauncher'"$REMOVALSUFFIX"'
 app/Trebuchet'"$REMOVALSUFFIX"'
+app/FineOSHome'"$REMOVALSUFFIX"'
 priv-app/CMHome'"$REMOVALSUFFIX"'
 priv-app/CustomLauncher3'"$REMOVALSUFFIX"'
 priv-app/Launcher2'"$REMOVALSUFFIX"'
@@ -348,6 +361,7 @@ app/LockClock'"$REMOVALSUFFIX"'
 mms_list="
 app/messaging'"$REMOVALSUFFIX"'
 priv-app/Mms'"$REMOVALSUFFIX"'
+priv-app/FineOSMms'"$REMOVALSUFFIX"'
 ";
 
 noisefield_list="
@@ -452,6 +466,8 @@ other_list="
 /system/priv-app/Provision'"$REMOVALSUFFIX"'
 /system/priv-app/QuickSearchBox'"$REMOVALSUFFIX"'
 /system/priv-app/Vending'"$REMOVALSUFFIX"'
+/system/priv-app/Velvet_update'"$REMOVALSUFFIX"'
+/system/priv-app/GmsCore_update'"$REMOVALSUFFIX"'
 ";
 
 # Apps from app that need to be installed in priv-app
