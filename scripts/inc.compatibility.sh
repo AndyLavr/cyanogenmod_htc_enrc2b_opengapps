@@ -245,6 +245,7 @@ packageinstallergoogle"
     gappsmini="$gappsmini
 calculatorgoogle"
     gappsstock="$gappsstock
+cameragooglelegacy
 contactsgoogle"
 #dialergoogle"
 
