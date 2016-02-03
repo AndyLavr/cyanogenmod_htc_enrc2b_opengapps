@@ -195,6 +195,7 @@ form(
     bypass.prop,
     "bypassrem",     "Не заменять приложения",        "",     "group",
       "+Browser",     "<b>+Browser</b>",      "",    "check",
+      "+CameraStock", "<b>+CameraStock</b>",  "",    "check",
       "+Email",     "<b>+Email</b>",      "",        "check",
       "+Gallery",     "<b>+Gallery</b>",      "",    "check",
       "+Launcher",     "<b>+Launcher</b>",      "",  "check",
@@ -848,6 +849,11 @@ if
   prop("bypass.prop", "+Browser")=="1"
 then
   appendvar("gapps", "+Browser\n");
+endif;
+if
+  prop("bypass.prop", "+CameraStock")=="1"
+then
+  appendvar("gapps", "+CameraStock\n");
 endif;
 if
   prop("bypass.prop", "+Email")=="1"
