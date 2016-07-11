@@ -17,57 +17,76 @@ TOP="$(realpath .)"
 SOURCES="$TOP/sources"
 SCRIPTS="$TOP/scripts"
 CERTIFICATES="$SCRIPTS/certificates"
+APKTOOL="$SCRIPTS/apktool-resources/apktool_2.1.1.jar"
+# shellcheck source=scripts/inc.compatibility.sh
 . "$SCRIPTS/inc.compatibility.sh"
+# shellcheck source=scripts/inc.sourceshelper.sh
 . "$SCRIPTS/inc.sourceshelper.sh"
+# shellcheck source=scripts/inc.tools.sh
 . "$SCRIPTS/inc.tools.sh"
 BETA=""
 
 # Check tools
-checktools aapt file coreutils jarsigner keytool openssl unzip
+PATH="$SCRIPTS/androidsdk-resources-$(uname):$PATH"  # temporary hack to prefer our own older (x86_64) aapt that gives the application label correctly
+checktools aapt file coreutils java jarsigner keytool openssl unzip
 
 installapk() {
   architecture="$1"
   eval "lowestapi=\$LOWESTAPI_$architecture"
+  if [ -n "$leanback" ] && [ "$lowestapi" -lt "$LOWESTAPI_leanback" ]; then
+    lowestapi="$LOWESTAPI_leanback"
+  fi
+  existing=""
 
   if [ "$sdkversion" -lt "$lowestapi" ]; then
-    for i in $(seq "$(($sdkversion + 1))" "$lowestapi")
-    do
-      existing="$SOURCES/$architecture/$type/$package/$i/$dpis"
-      if [ -e "$existing" ];then
-        echo "ERROR: API level is lower than minimum level $lowestapi and lower than existing level $i of the same package"
-        return 1;
-      fi
+    for s in $(seq "$((sdkversion + 1))" "$lowestapi"); do
+      for d in $(printf "%s" "$dpis" | sed 's/-/ /g'); do
+        existing="$(find "$SOURCES/$architecture/$type/$package/$s/" -type d -name "*$d*" | sort -r | cut -c1-)" 2>/dev/null
+        if [ -e "$existing" ];then
+          echo "ERROR: API level is lower than minimum level $lowestapi and lower than existing level $s of the same package"
+          return 1;
+        fi
+      done
     done
   fi
 
   #targetlocation: sources/platform/type/package/sdkversion/dpi1-dpi2-dpi3/versioncode.apk
   target="$SOURCES/$1/$type/$package/$sdkversion/$dpis"
-  install -d "$target"
-  if stat --printf='' "$target/"* 2>/dev/null; then
-    existing=$(find "$target/" -name "*.apk" | sort -r | cut -c1-) #we only look for lowercase .apk, since basename later assumes the same
-    echo "Existing version $existing"
-    existingversion=$(basename -s.apk "$existing")
-    if [ "$versioncode" -gt "$existingversion" ]; then
-      echo "Replaced with $target/$versioncode.apk"
-      rm "$existing"
-      install -D "$apk" "$target/$versioncode.apk"
-    else
-      echo "ERROR: APK is not newer than existing"
+
+  for d in $(printf "%s" "$dpis" | sed 's/-/ /g'); do
+    existingpath="$(find "$SOURCES/$architecture/$type/$package/$sdkversion/" -type d -name "*$d*" | sort -r | cut -c1-)" 2>/dev/null
+    if [ -n "$existingpath" ]; then
+      existing="$(find "$existingpath/" -name "*.apk" | sort -r | cut -c1-)" 2>/dev/null #we only look for lowercase .apk, since basename later assumes the same
+      if [ -e "$existing" ]; then
+        echo "Existing version $existing"
+        existingversion=$(basename -s.apk "$existing")
+        if [ "$versioncode" -gt "$existingversion" ]; then
+          rm "$existing"
+          rmdir -p --ignore-fail-on-non-empty "$existingpath"
+          install -D "$apk" "$target/$versioncode.apk"
+          echo "Replaced with $target/$versioncode.apk"
+        else
+          echo "ERROR: APK is not newer than existing"
+        fi
+        break
+      fi
     fi
-  else
+  done
+  if [ -z "$existing" ]; then
     install -D "$apk" "$target/$versioncode.apk"
     echo "SUCCESS: Added $target/$versioncode.apk"
   fi
 
   if [ "$sdkversion" -le "$lowestapi" ]; then
-    for i in $(seq 1 "$((sdkversion - 1))")
-    do
-      remove="$SOURCES/$architecture/$type/$package/$i/$dpis"
-      if [ -e "$remove" ];then
-        rm -rf "$remove"
-        rmdir --ignore-fail-on-non-empty "$(dirname "$remove")"
-        echo "Cleaned up old API: $remove"
-      fi
+    for s in $(seq 1 "$((sdkversion - 1))"); do
+      for d in $(printf "%s" "$dpis" | sed 's/-/ /g'); do
+        remove="$(find "$SOURCES/$architecture/$type/$package/$s/" -type d -name "*$d*" | sort -r | cut -c1-)" 2>/dev/null
+        if [ -e "$remove" ]; then
+          rm -rf "$remove"
+          rmdir --ignore-fail-on-non-empty "$(dirname "$remove")"
+          echo "Cleaned up old API: $remove"
+        fi
+      done
     done
   fi
 }
@@ -75,6 +94,17 @@ installapk() {
 addapk() {
   apk="$1"
   getapkproperties "$apk"
+
+  if [ "$package" = "com.google.android.setupwizard" ]; then
+    if getsetupwizardproduct "$apk"; then
+      if [ -n "$product" ]; then
+        package="$package.$product"
+      fi
+    else
+      echo "ERROR: Failed to retrieve SetupWizard product-type of $apk"
+      return 1
+    fi
+  fi
 
   echo "Importing $name"
   echo "Package $package | VersionName $versionname | VersionCode $versioncode | API level $sdkversion"
@@ -84,25 +114,57 @@ addapk() {
     echo "Package supports DPIs: $(echo "$dpis" | tr '-' ' ')"
   fi
 
-  getarchitectures "$apk"
-  echo "Native code for architecture(s): $architectures"
-
-  if ! verifyapk "$apk"; then
-    if [ -n "$notinzip" ]; then
-      echo "ERROR: The following files were mentioned in the signed manifest of $1 but are not present in the APK:
-$notinzip"
+  # So an extra check is necessary before declaring it suitable for all platforms
+  if [ "$(echo $native)" = ""  ]; then # we can't use -z here, because there can be a spaces in it
+    getarchitecturesfromlib "$apk"
+    if [ "$architectures" = "all" ]; then
+      echo "No native code"
     else
-      echo "ERROR: $1 contains files or a certificate not signed by Google. APK not imported";
+      echo "Found native libraries for architecture(s): $architectures"
     fi
-    echo "ERROR: Unsigned or incomplete APKs are not allowed. APK is not imported."
+  else
+    architectures=""
+    altarchitectures=""
+    for arch in $native; do
+      architectures="$architectures$arch "
+    done
+    echo "Native code for architecture(s): $architectures"
+    for altarch in $altnative; do
+      altarchitectures="$altarchitectures$altarch "
+    done
+    if [ -n "$altarchitectures" ]; then
+      echo "Alternative native code for architecture(s): $altarchitectures"
+    fi
+  fi
+
+  verifyapk "$apk"
+  verified="$?"
+  if [ "$verified" != 0 ]; then
+    case "$verified" in
+      $INCOMPLETEFILES) echo "ERROR: The following files were mentioned in the signed manifest of $apk but are not present in the APK:
+$notinzip";;
+      $INVALIDCERT)     echo "ERROR: $apk contains files or a certificate not signed by Google. APK not imported";;
+      $UNSIGNEDFILES)   echo "ERROR: Unsigned or incomplete APKs are not allowed. APK is not imported.";;
+    esac
     return 1
   fi
   echo "APK is complete, certificate is valid and signed by Google"
 
   #We manually check for each of our set of supported architectures
   #We assume NO universal packages for 32vs64 bit, so start with the 'highest' architectures first, if it matches one of those, we will NOT add it to a lower architecture
-  if echo "$architectures" | grep -q "armeabi"; then #no space, all armearbi types are valid
-      installapk "arm"
+  if { echo "$architectures" | grep -q "armeabi" && ! echo "$architectures" | grep -q "arm64"; } ||\
+       echo "$native" | grep -q "armeabi"; then #no space, all armearbi* are valid
+    installapk "arm"
+  fi
+  if echo "$architectures" | grep -q "arm64"; then
+    installapk "arm64"
+  fi
+  if { echo "$architectures" | grep -q "x86 " && ! echo "$architectures" | grep -q "x86_64"; } ||\
+       echo "$native" | grep -q "x86 "; then #x86 with space, make sure x86 is not a substring of x86_64
+    installapk "x86"
+  fi
+  if echo "$architectures" | grep -q "x86_64"; then
+    installapk "x86_64"
   fi
   if echo "$architectures" | grep -q "all"; then #no space (single entry)
     installapk "all"
@@ -151,15 +213,24 @@ for argument in "$@"; do
       *aarch64*)      addlib "$file" "arm64";;
       *32-bit*intel*) addlib "$file" "x86";;
       *32-bit*arm*)   addlib "$file" "arm";;
-      *)              echo "ERROR: File $f has an unrecognized filetype!";;
+      *)              echo "ERROR: File $file has an unrecognized filetype!";;
     esac
   else
     echo "ERROR: File $file does not exist!"
   fi
 done
 
-#List of 'our' architecture classification compared to the Android NDK architectures:
+#Full list of 'our' architecture classification compared to the Android NDK architectures:
 #arm:
 #	armeabi - ARMv5TE based CPU with software floating point operations;
 #	armeabi-v7a - ARMv7 based devices with hardware FPU instructions
+#arm64:
+#	arm64-v8a - ARMv8 AArch64 instruction set
+#x86:
+#	x86 - IA-32 instruction set
+#x86_64:
+#	x86_64 - Intel64 instruction set
 #
+#unsupported at the moment:
+#mips - MIPS32 instruction set
+#mips64 - MIPS64 instruction set

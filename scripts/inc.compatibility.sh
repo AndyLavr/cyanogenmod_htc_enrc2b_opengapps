@@ -13,7 +13,7 @@
 
 cameracompatibilityhack(){
   if [ "$API" -le "19" ]; then
-    echo '    A0001|bacon|find7) cameragoogle_compat=false;; # bacon or A0001=OnePlus One | find7=Oppo Find7 and Find7a' >> "$build/META-INF/com/google/android/update-binary"
+    echo '    A0001|bacon|find7) cameragoogle_compat=false;; # bacon or A0001=OnePlus One | find7=Oppo Find7 and Find7a' >> "$1"
   fi
 }
 
@@ -23,139 +23,222 @@ camerav3compatibilityhack(){
 # Google Camera fallback to Legacy if incompatible with new Camera API
 case $newcamera_compat in
   false*) gapps_list=${gapps_list/cameragoogle/cameragooglelegacy}; log "Google Camera version" "Legacy";;
-esac' >> "$build/META-INF/com/google/android/update-binary"
+esac' >> "$1"
+  fi
+}
+
+hotwordadditionhack(){
+  if [ "$API" -ge "21" ] && [ "$ARCH" = "arm64" ]; then
+    tee -a "$1" > /dev/null <<'EOFILE'
+# On Marshmallow; If we're installing search we must install hotword too (if it's not already there)
+if ( contains "$gapps_list" "search" ) && ( ! contains "$gapps_list" "hotword" ); then
+  gapps_list="${gapps_list}hotword"$'\n';
+fi;
+
+EOFILE
   fi
 }
 
 keyboardgooglenotremovehack(){
   if [ "$API" -le "19" ]; then
-    echo '  sed -i "\:/system/app/LatinImeGoogle.apk:d" $gapps_removal_list;'>> "$build/META-INF/com/google/android/update-binary"
+    echo '  sed -i "\:/system/app/LatinImeGoogle.apk:d" $gapps_removal_list;'>> "$1"
   else
-    echo '  sed -i "\:/system/app/LatinImeGoogle:d" $gapps_removal_list;'>> "$build/META-INF/com/google/android/update-binary"
+    echo '  sed -i "\:/system/app/LatinImeGoogle:d" $gapps_removal_list;'>> "$1"
   fi
 }
 
 keyboardlibhack(){
-  case "$ARCH" in #only arm based platforms we have swypelibs
-    arm*) gappscore_optional="swypelibs $gappscore_optional"
-          if [ "$API" -gt "19" ]; then # on Lollipop there are symlinks in /LatinIME/lib/ and we don't need to remove the aosp lib
-            REQDLIST="/system/lib/libjni_latinimegoogle.so
+  if [ "$API" -ge "23" ]; then # on Marshmallow it is like Lollipop but with extra libjni_keyboarddecoder.so; on Marshmallow we support all platforms
+    gappscore_optional="swypelibs $gappscore_optional"
+    REQDLIST='/system/lib/libjni_latinimegoogle.so
 /system/lib64/libjni_latinimegoogle.so
-/system/app/LatinIME/lib/$ARCH/libjni_latinimegoogle.so"
-            KEYBDLIBS='keybd_lib_google="libjni_latinimegoogle.so";'
-            # Only touch AOSP keyboard only if it is not removed
-            KEYBDINSTALLCODE='# Install/Remove SwypeLibs
+/system/app/LatinIME/lib/$arch/libjni_latinimegoogle.so
+/system/lib/libjni_keyboarddecoder.so
+/system/lib64/libjni_keyboarddecoder.so
+/system/app/LatinIME/lib/$arch/libjni_keyboarddecoder.so'
+    KEYBDLIBS='keybd_lib_google="libjni_latinimegoogle.so"
+keybd_dec_google="libjni_keyboarddecoder.so"
+keybd_lib_aosp="libjni_latinime.so"'
+    # Only touch AOSP keyboard only if it is not removed
+    KEYBDINSTALLCODE='# Install/Remove SwypeLibs
 if ( ! contains "$gapps_list" "keyboardgoogle" ); then
   if [ "$skipswypelibs" = "false" ]; then
-    ui_print "- Installing swypelibs";
-    log "- Installing " "swypelibs";
-    extract_app "Optional/swypelibs";
-    install -d "/system/app/LatinIME/lib/'"$ARCH"'";
-    ln -sfn "/system/'"$LIBFOLDER"'/$keybd_lib_google" "/system/app/LatinIME/lib/'"$ARCH"'/$keybd_lib_google"; # create required symlink
+    if [ "$substituteswypelibs" = "true" ]; then
+      keybd_lib_target="$keybd_lib_aosp"
+      rm -f "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_google" # remove swypelibs and symlink if any
+      rm -f "/system/app/LatinIME/$libfolder/$arch/$keybd_dec_google" # remove swypelibs and symlink if any
+    else
+      keybd_lib_target="$keybd_lib_google"
+      ln -sfn "/system/$libfolder/$keybd_lib_aosp" "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_aosp" # relink aosp as the normal link
+    fi
+    ui_print "- Installing swypelibs"
+    extract_app "Optional/swypelibs-lib-$arch"  # Keep it simple, swypelibs is only lib-$arch
+    install -d "/system/app/LatinIME/$libfolder/$arch"
+    ln -sfn "/system/$libfolder/$keybd_lib_google" "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_target" # create required symlink
+    ln -sfn "/system/$libfolder/$keybd_dec_google" "/system/app/LatinIME/$libfolder/$arch/$keybd_dec_google" # create required symlink
 
     # Add same code to backup script to insure symlinks are recreated on addon.d restore
-    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    ln -sfn \"/system/'"$LIBFOLDER"'/$keybd_lib_google\" \"/system/app/LatinIME/lib/'"$ARCH"'/$keybd_lib_google\"" $bkup_tail;
-    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    install -d \"/system/app/LatinIME/lib/'"$ARCH"'\"" $bkup_tail;
+    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    ln -sfn \"/system/$libfolder/$keybd_dec_google\" \"/system/app/LatinIME/$libfolder/$arch/$keybd_dec_google\"" $bkup_tail
+    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    ln -sfn \"/system/$libfolder/$keybd_lib_google\" \"/system/app/LatinIME/$libfolder/$arch/$keybd_lib_target\"" $bkup_tail
+    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    install -d \"/system/app/LatinIME/$libfolder/$arch\"" $bkup_tail
   else
-    ui_print "- Removing swypelibs";
-    log "- Removing " "swypelibs";
-    rm -f "/system/'"$LIBFOLDER"'/$keybd_lib_google" "/system/app/LatinIME/'"$LIBFOLDER"'/'"$ARCH"'/$keybd_lib_google"; # remove swypelibs and symlink if any
-  fi;
-fi;'
-          else # on KitKat we need to replace the aosp lib with a symlink, it has no 64bit libs
-            REQDLIST="/system/lib/libjni_latinime.so
-/system/lib/libjni_latinimegoogle.so"
-            KEYBDLIBS='keybd_lib_google="libjni_latinimegoogle.so";
-keybd_lib_aosp="libjni_latinime.so";'
+    ui_print "- Removing swypelibs"
+    rm -f "/system/$libfolder/$keybd_lib_google" "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_google" # remove swypelibs and symlink if any
+    rm -f "/system/$libfolder/$keybd_dec_google" "/system/app/LatinIME/$libfolder/$arch/$keybd_dec_google" # remove swypelibs and symlink if any
+    ln -sfn "/system/$libfolder/$keybd_lib_aosp" "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_aosp" # restore non-swypelibs symlink
+  fi
+fi'
+  elif [ "$API" -gt "19" ]; then # on Lollipop there are symlinks in /LatinIME/lib/ and we don't need to remove the aosp lib
+    case "$ARCH" in #only arm-based platforms have swypelibs on Lollipop
+    arm*)
+      gappscore_optional="swypelibs $gappscore_optional"
+      REQDLIST='/system/lib/libjni_latinimegoogle.so
+/system/lib64/libjni_latinimegoogle.so
+/system/app/LatinIME/lib/$arch/libjni_latinimegoogle.so'
+      KEYBDLIBS='keybd_lib_google="libjni_latinimegoogle.so"
+keybd_lib_aosp="libjni_latinime.so"'
       # Only touch AOSP keyboard only if it is not removed
-            KEYBDINSTALLCODE='# Install/Remove SwypeLibs
+      KEYBDINSTALLCODE='# Install/Remove SwypeLibs
 if ( ! contains "$gapps_list" "keyboardgoogle" ); then
   if [ "$skipswypelibs" = "false" ]; then
-    ui_print "- Installing swypelibs";
-    log "- Installing " "swypelibs";
-    extract_app "Optional/swypelibs";
-    ln -sfn "/system/'"$LIBFOLDER"'/$keybd_lib_google" "/system/'"$LIBFOLDER"'/$keybd_lib_aosp"; # create required symlink
+    if [ "$substituteswypelibs" = "true" ]; then
+      keybd_lib_target="$keybd_lib_aosp"
+      rm -f "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_google" # remove swypelibs and symlink if any
+    else
+      keybd_lib_target="$keybd_lib_google"
+      ln -sfn "/system/$libfolder/$keybd_lib_aosp" "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_aosp" # relink aosp as the normal link
+    fi
+    ui_print "- Installing swypelibs"
+    extract_app "Optional/swypelibs-lib-$arch"  # Keep it simple, swypelibs is only lib-$arch
+    install -d "/system/app/LatinIME/$libfolder/$arch"
+    ln -sfn "/system/$libfolder/$keybd_lib_google" "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_target" # create required symlink
 
     # Add same code to backup script to insure symlinks are recreated on addon.d restore
-    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    ln -sfn \"/system/'"$LIBFOLDER"'/$keybd_lib_google\" \"/system/'"$LIBFOLDER"'/$keybd_lib_aosp\"" $bkup_tail;
+    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    ln -sfn \"/system/$libfolder/$keybd_lib_google\" \"/system/app/LatinIME/$libfolder/$arch/$keybd_lib_target\"" $bkup_tail
+    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    install -d \"/system/app/LatinIME/$libfolder/$arch\"" $bkup_tail
   else
-    ui_print "- Restoring non-swypelibs";
-    log "- Restoring " " non-swypelibs";
-    rm -f "/system/'"$LIBFOLDER"'/$keybd_lib_google"; # remove swypelibs
-    ln -sfn "/system/'"$LIBFOLDER"'/$keybd_lib_aosp" "/system/'"$LIBFOLDER"'/'"$ARCH"'/$keybd_lib_aosp"; # restore non-swypelibs symlink
-  fi;
-fi;'
-          fi;;
-    *) REQDLIST=""
-       KEYBDLIBS=""
-       KEYBDINSTALLCODE="";;
-  esac
+    ui_print "- Removing swypelibs"
+    rm -f "/system/$libfolder/$keybd_lib_google" "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_google" # remove swypelibs and symlink if any
+    ln -sfn "/system/$libfolder/$keybd_lib_aosp" "/system/app/LatinIME/$libfolder/$arch/$keybd_lib_aosp" # restore non-swypelibs symlink
+  fi
+fi';;
+      *) REQDLIST=""
+         KEYBDLIBS=""
+         KEYBDINSTALLCODE="";;
+    esac
+  else # on KitKat we need to replace the aosp lib with a symlink, it has no 64bit libs
+    case "$ARCH" in #only arm-based platforms have swypelibs on KitKat
+      arm*)
+        gappscore_optional="swypelibs $gappscore_optional"
+        REQDLIST="/system/lib/libjni_latinime.so
+/system/lib/libjni_latinimegoogle.so"
+        KEYBDLIBS='keybd_lib_google="libjni_latinimegoogle.so"
+keybd_lib_aosp="libjni_latinime.so"'
+        # Only touch AOSP keyboard only if it is not removed
+        KEYBDINSTALLCODE='# Install/Remove SwypeLibs
+if ( ! contains "$gapps_list" "keyboardgoogle" ); then
+  if [ "$skipswypelibs" = "false" ]; then
+    ui_print "- Installing swypelibs"
+    extract_app "Optional/swypelibs-lib-$arch"  # Keep it simple, swypelibs is only lib-$arch
+    ln -sfn "/system/$libfolder/$keybd_lib_google" "/system/$libfolder/$keybd_lib_aosp" # create required symlink
+
+    # Add same code to backup script to insure symlinks are recreated on addon.d restore
+    sed -i "\:# Recreate required symlinks (from GApps Installer):a \    ln -sfn \"/system/$libfolder/$keybd_lib_google\" \"/system/$libfolder/$keybd_lib_aosp\"" $bkup_tail
+  else
+    ui_print "- Restoring non-swypelibs"
+    rm -f "/system/$libfolder/$keybd_lib_google" # remove swypelibs
+    ln -sfn "/system/$libfolder/$keybd_lib_aosp" "/system/$libfolder/$arch/$keybd_lib_aosp" # restore non-swypelibs symlink
+  fi
+fi';;
+      *) REQDLIST=""
+         KEYBDLIBS=""
+         KEYBDINSTALLCODE="";;
+    esac
+  fi
 }
 
 kitkatdatahack(){
   if [ "$API" -le "19" ]; then
     DATASIZESCODE='    # Broken lib configuration on KitKat, so some apps do not count for the /system space because they are on /data
-    if [ "$gapp_name" = "hangouts" ] || [ "$gapp_name" = "googleplus" ] || [ "$gapp_name" = "photos" ] || [ "$gapp_name" = "youtube" ]; then
-        appsize=0;
+    if [ "$gapp_name" = "hangouts" ] || [ "$gapp_name" = "googleplus" ] || [ "$gapp_name" = "messenger" ] || [ "$gapp_name" = "photos" ] || [ "$gapp_name" = "street" ] || [ "$gapp_name" = "youtube" ]; then
+        total_appsize=0;
     fi'
-    DATAINSTALLCODE='install -d /data/app/
+    DATAINSTALLCODE='
+kitkatdata_folder_extract() {
+  number="$(basename "$(find "/data/app/$3-"* | head -n1)" .apk | rev | cut -d- -f1)"
+  if [ -z "$number" ]; then
+    number="1"
+  fi
+  # On KitKat we know that these applications are arm and x86 and are using no fallbacks
+  if [ -e "$TMP/GApps/$1.tar.xz" ]; then
+    $TMP/xzdec-$BINARCH "$TMP/GApps/$1.tar.xz" | tar -x -C "$TMP" -f - "$2"
+  elif [ -e "$TMP/GApps/$1.tar.lz" ]; then
+    tar -xyf "$TMP/GApps/$1.tar.lz" -C "$TMP" "$2"
+  elif [ -e "$TMP/GApps/$1.tar" ]; then
+    tar -xf "$TMP/GApps/$1.tar" -C "$TMP" "$2"
+  fi
+  cp -rf "$TMP/$2/app/$4" "/data/app/$3-$number.apk"
+  rm -rf "$TMP/$2"
+  if [ -e "$TMP/GApps/$1.tar.xz" ]; then
+    $TMP/xzdec-$BINARCH "$TMP/GApps/$1.tar.xz" | tar -x -C "$TMP" -f - "$1/common"
+    rm -f "$TMP/GApps/$1.tar.xz"
+  elif [ -e "$TMP/GApps/$1.tar.lz" ]; then
+    tar -xyf "$TMP/GApps/$1.tar.lz" -C "$TMP" "$1/common"
+    rm -f "$TMP/GApps/$1.tar.lz"
+  elif [ -e "$TMP/GApps/$1.tar" ]; then
+    tar -xf "$TMP/GApps/$1.tar" -C "$TMP" "$1/common"
+    rm -f "$TMP/GApps/$1.tar"
+  fi
+  cp -rf "$TMP/$1/common/lib"* "/data/app-lib/$3-$number/"
+  set_perm 1000 1000 644 "/data/app/$3-$number.apk"
+  set_perm_recursive 1000 1000 755 644 "/data/app-lib/$3-$number"
+  rm -rf "$TMP/$1/common"
+}
+
+install -d /data/app/
 install -d /data/app-lib/
 # Handle broken lib configuration on KitKat by putting Hangouts on /data/
 if ( contains "$gapps_list" "hangouts" ); then
-  unzip -o "$ZIP" "GApps/hangouts.tar.xz" -d $TMP;
-  tarpath="$TMP/GApps/hangouts.tar.xz";
-  which_dpi "hangouts";
-  tar -xJf "$tarpath" -C $TMP "$dpiapkpath";
-  cp -rf $TMP/$dpiapkpath/priv-app/Hangouts.apk /data/app/com.google.android.talk.apk;
-  rm -rf $TMP/$dpiapkpath;
-  tar -xJf "$tarpath" -C $TMP "common";
-  cp -rf $TMP/hangouts/common/lib. /data/app-lib/com.google.android.talk/;
-  rm -rf $TMP/hangouts/common;
-  rm -f "$tarpath";
-  gapps_list=${gapps_list/hangouts};
-fi;
+  unzip -o "$OPENGAZIP" "GApps/hangouts-$arch.tar*" -d "$TMP"
+  which_dpi "hangouts-$arch"  # Keep it simple, only 32 bit arch on kitkat and no weird libs for these apps
+  kitkatdata_folder_extract "hangouts-$arch" "$dpiapkpath" "com.google.android.talk" "Hangouts.apk"
+  gapps_list=${gapps_list/hangouts}
+fi
 # Handle broken lib configuration on KitKat by putting Google+ on /data/
 if ( contains "$gapps_list" "googleplus" ); then
-  unzip -o "$ZIP" "GApps/googleplus.tar.xz" -d $TMP;
-  tarpath="$TMP/GApps/googleplus.tar.xz";
-  which_dpi "googleplus";
-  tar -xJf "$tarpath" -C $TMP "$dpiapkpath";
-  cp -rf $TMP/$dpiapkpath/app/PlusOne.apk /data/app/com.google.android.apps.plus.apk;
-  rm -rf $TMP/$dpiapkpath;
-  tar -xJf "$tarpath" -C $TMP "common";
-  cp -rf $TMP/googleplus/common/lib. /data/app-lib/com.google.android.apps.plus/;
-  rm -rf $TMP/googleplus/common;
-  rm -f "$tarpath";
-  gapps_list=${gapps_list/googleplus};
-fi;
+  unzip -o "$OPENGAZIP" "GApps/googleplus-$arch.tar*" -d "$TMP"
+  which_dpi "googleplus-$arch"  # Keep it simple, only 32 bit arch on kitkat and no weird libs for these apps
+  kitkatdata_folder_extract "googleplus-$arch" "$dpiapkpath" "com.google.android.apps.plus" "PlusOne.apk"
+  gapps_list=${gapps_list/googleplus}
+fi
+# Handle broken lib configuration on KitKat by putting Messenger on /data/
+if ( contains "$gapps_list" "messenger" ); then
+  unzip -o "$OPENGAZIP" "GApps/messenger-$arch.tar*" -d "$TMP"
+  which_dpi "messenger-$arch"  # Keep it simple, only 32 bit arch on kitkat and no weird libs for these apps
+  kitkatdata_folder_extract "messenger-$arch" "$dpiapkpath" "com.google.android.apps.messaging" "PrebuiltBugle.apk"
+  gapps_list=${gapps_list/messenger}
+fi
 # Handle broken lib configuration on KitKat by putting Photos on /data/
 if ( contains "$gapps_list" "photos" ); then
-  unzip -o "$ZIP" "GApps/photos.tar.xz" -d $TMP;
-  tarpath="$TMP/GApps/photos.tar.xz";
-  which_dpi "photos";
-  tar -xJf "$tarpath" -C $TMP "$dpiapkpath";
-  cp -rf $TMP/$dpiapkpath/app/Photos.apk /data/app/com.google.android.apps.photos.apk;
-  rm -rf $TMP/$dpiapkpath;
-  tar -xJf "$tarpath" -C $TMP "common";
-  cp -rf $TMP/photos/common/lib. /data/app-lib/com.google.android.apps.photos/;
-  rm -rf $TMP/photos/common;
-  rm -f "$tarpath";
-  gapps_list=${gapps_list/photos};
-fi;
+  unzip -o "$OPENGAZIP" "GApps/photos-$arch.tar*" -d "$TMP"
+  which_dpi "photos-$arch"  # Keep it simple, only 32 bit arch on kitkat and no weird libs for these apps
+  kitkatdata_folder_extract "photos-$arch" "$dpiapkpath" "com.google.android.apps.photos" "Photos.apk"
+  gapps_list=${gapps_list/photos}
+fi
+# Handle broken lib configuration on KitKat by putting StreetView on /data/
+if ( contains "$gapps_list" "street" ); then
+  unzip -o "$OPENGAZIP" "GApps/street-$arch.tar*" -d "$TMP"
+  which_dpi "street-$arch"  # Keep it simple, only 32 bit arch on kitkat and no weird libs for these apps
+  kitkatdata_folder_extract "street-$arch" "$dpiapkpath" "com.google.android.street" "Street.apk"
+  gapps_list=${gapps_list/street}
+fi
 # Handle broken lib configuration on KitKat by putting YouTube on /data/
 if ( contains "$gapps_list" "youtube" ); then
-  unzip -o "$ZIP" "GApps/youtube.tar.xz" -d $TMP;
-  tarpath="$TMP/GApps/youtube.tar.xz";
-  which_dpi "youtube";
-  tar -xJf "$tarpath" -C $TMP "$dpiapkpath";
-  cp -rf $TMP/$dpiapkpath/app/YouTube.apk /data/app/com.google.android.youtube.apk;
-  rm -rf $TMP/$dpiapkpath;
-  tar -xJf "$tarpath" -C $TMP "common";
-  cp -rf $TMP/youtube/common/lib. /data/app-lib/com.google.android.youtube/;
-  rm -rf $TMP/youtube/common;
-  rm -f "$tarpath";
-  gapps_list=${gapps_list/youtube};
-fi;'
+  unzip -o "$OPENGAZIP" "GApps/youtube-$arch.tar*" -d "$TMP"
+  which_dpi "youtube-$arch"  # Keep it simple, only 32 bit arch on kitkat and no weird libs for these apps
+  kitkatdata_folder_extract "youtube-$arch" "$dpiapkpath" "com.google.android.youtube" "YouTube.apk"
+  gapps_list=${gapps_list/youtube}
+fi'
   else
     DATASIZESCODE=""
     DATAINSTALLCODE=""
@@ -194,8 +277,9 @@ minapihack(){
 provisionremovalhack(){
   if [ "$API" -le "22" ]; then
     tee -a "$1" > /dev/null <<'EOFILE'
-# On Pre-Marshmallow the Provision folder does always have to be removed (it conflicts with SetupWizard.apk)
+# On Pre-Marshmallow the Provision folder always has to be removed (it conflicts with SetupWizard)
 aosp_remove_list="${aosp_remove_list}provision"$'\n';
+
 EOFILE
   fi
 }
@@ -225,19 +309,39 @@ EOFILE
 
 versionnamehack(){
   case "$package" in
-    #the Drive/Docs/Sheets/Slides variate even the last two different digits of the versionName per DPI variant, so we only take the first 10 chars
-    com.google.android.apps.docs*) versionname="$(echo "$versionname" | cut -c 1-10)";;
-    #the Fitness variate the last 3 digits per DPI variant
-    com.google.android.apps.fitness) versionname="$(echo "$versionname" | cut -c 1-7)";;
-    #the Project FI variates with different lengths at the end, but begin string is always 8 long
-    com.google.android.apps.tycho) versionname="$(echo "$versionname" | cut -c 1-8)";;
+    #the Drive/Docs/Sheets/Slides variate after the last dot per arch and dpi, so we only take the first 4 fields
+    com.google.android.apps.docs*) versionname="$(echo "$versionname" | cut -d '.' -f 1-4)";;
+    #the Fitness variate after the dash per dpi, so we only take before it
+    com.google.android.apps.fitness) versionname="$(echo "$versionname" | cut -d '-' -f 1)";;
+    #the Project FI variate after the dash per dpi, so we only take before it
+    com.google.android.apps.tycho) versionname="$(echo "$versionname" | cut -d '-' -f 1)";;
+    #the Google Search app variates after the 3 dots per SDK and after the 4th dot per arch, so we only take the first 3 fields
+    com.google.android.googlequicksearchbox) versionname="$(echo "$versionname" | cut -d '.' -f 1-3)";;
   esac
+}
+
+api19hack(){
+  # On KitKat there is only 1 kind of setupwizard without a product type
+  if [ "$API" -le "19" ]; then
+  gappscore="$gappscore
+setupwizard"
+  else
+  gappscore="$gappscore
+setupwizarddefault
+setupwizardtablet"
+  fi
 }
 
 api21hack(){
   if [ "$API" -ge "21" ]; then
+    if [ "$ARCH" = "arm64" ]; then
+      gappsnano="$gappsnano
+hotword"
+    fi
     gappsmini="$gappsmini
 taggoogle"
+    gappsstock="$gappsstock
+contactsgoogle"
     miniremove="$miniremove
 clockstock
 tagstock"
@@ -261,13 +365,13 @@ webviewstock"
 api23hack(){
   if [ "$API" -ge "23" ]; then
     gappspico="$gappspico
+dialerframework
 googletts
 packageinstallergoogle"
     gappsmini="$gappsmini
 calculatorgoogle"
     gappsstock="$gappsstock
-contactsgoogle"
-#dialergoogle"
+dialergoogle"
     gappsstock_optional="$gappsstock_optional
 cameragooglelegacy"
 
@@ -275,18 +379,28 @@ cameragooglelegacy"
 lib64/$WebView_lib_filename
 ' #on Marshmallow the AOSP WebViewlibs must be removed, since they are embedded in the Google WebView APK; this assumes also any pre-bundled Google WebView with the ROM uses embedded libs; use single quote to not replace variable names
     webviewgappsremove=""
+
+  # On Marshmallow the regular Packageinstaller is used
+  gappstvstock="$gappstvstock
+packageinstallergoogle"
   else
     gappsmicro="$gappsmicro
 googletts"
     webviewstocklibs="" # on non-Marshmallow the WebViewlibs should not be considered part of the Stock/AOSP WebView, since they are shared with the Google WebView
     webviewgappsremove="lib/libwebviewchromium.so
 lib64/libwebviewchromium.so" #on non-Marshmallow the WebViewlibs are to be explictly included as a Google WebView file in gapps-remove.txt
+
+  # On pre-Marshmallow TV Voiceinput and TV Packageinstaller exist
+  gappstvstock="$gappstvstock
+tvpackageinstallergoogle
+tvvoiceinput"
   fi
 }
 
 sdkversionhacks(){
   case "$package" in
     com.android.facelock) if [ "$versioncode" = "23" ]; then sdkversion="23"; fi;;
+    com.google.android.partnersetup) if [ "$versioncode" = "23" ]; then sdkversion="23"; fi;;
     *) ;;
   esac
 }

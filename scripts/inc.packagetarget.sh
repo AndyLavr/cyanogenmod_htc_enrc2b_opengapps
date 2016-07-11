@@ -13,7 +13,11 @@
 alignbuild() {
   for f in $(find "$build" -name '*.apk'); do
     mv "$f" "$f.orig"
-    zipalign -f -p 4 "$f.orig" "$f" #consider recompression with Zopfli using -z for production use
+    zopfli=""
+    if [ -n "$ZIPALIGNRECOMPRESS" ]; then
+      zopfli="-z"
+    fi
+    zipalign -f -p $zopfli 4 "$f.orig" "$f"
     rm "$f.orig"
   done
 }
@@ -28,8 +32,10 @@ commonscripts() {
   makegappsremovetxt "gapps-remove.txt"
   makegprop "g.prop"
   makeinstallersh "installer.sh"
-  bundlexz # on arm platforms we can include our own xz binary
-  makeupdatebinary "META-INF/com/google/android/update-binary" "busybox" "installer.sh" # execute as last, it contains $EXTRACTFILES from the previous commands
+  bundlebusybox
+  bundlexzdec
+  bundlezip
+  makeupdatebinary "META-INF/com/google/android/update-binary" "busybox" "installer.sh" "$EXTRACTFILES" "$CHMODXFILES" # execute as last so that $EXTRACTFILES and $CHMODXFILES are complete
   bundlelicense #optionally add a LICENSE file to the package
 }
 
@@ -55,13 +61,34 @@ aromaupdatebinary() {
   copy "$SCRIPTS/aroma-resources/update-binary" "$build/META-INF/com/google/android/update-binary"
 }
 
-bundlexz() {
-  case "$ARCH" in #Include our own 32-bit xz-decompression binary
-    arm*) xzbin="xzdec-arm";;
+bundlebusybox() {
+  case "$ARCH" in #Include busybox binary
+    arm*) busyboxbin="busybox-arm";;
+    x86*) busyboxbin="busybox-x86";;
   esac
-  copy "$SCRIPTS/xz-resources/$xzbin" "$build/xzdec"
-  EXTRACTFILES="$EXTRACTFILES xzdec"
-  CHMODXFILES="$CHMODXFILES $1"
+  copy "$SCRIPTS/busybox-resources/$busyboxbin" "$build/$busyboxbin"
+  EXTRACTFILES="$EXTRACTFILES $busyboxbin"
+  CHMODXFILES="$CHMODXFILES $busyboxbin"
+}
+
+bundlexzdec() {
+  case "$ARCH" in #Include xzdec binary
+    arm*) xzdecbin="xzdec-arm";;
+    x86*) xzdecbin="xzdec-x86";;
+  esac
+  copy "$SCRIPTS/xz-resources/$xzdecbin" "$build/$xzdecbin"
+  EXTRACTFILES="$EXTRACTFILES $xzdecbin"
+  CHMODXFILES="$CHMODXFILES $xzdecbin"
+}
+
+bundlezip() {
+  case "$ARCH" in #Include zip binary
+    arm*) zipbin="zip-arm";;
+    x86*) zipbin="zip-x86";;
+  esac
+  copy "$SCRIPTS/infozip-resources/$zipbin" "$build/$zipbin"
+  EXTRACTFILES="$EXTRACTFILES $zipbin"
+  CHMODXFILES="$CHMODXFILES $zipbin"
 }
 
 bundlelicense() {
@@ -73,32 +100,60 @@ bundlelicense() {
   fi
 }
 
-createxz() {
-      hash="$(tar -cf - "$f" | md5sum | cut -f1 -d' ')"
+compressapp() {
+  compression="$COMPRESSION"
+  case "$compression" in
+    xz) checktools xz
+        csuf=".xz"
+        compress() {
+          XZ_OPT='-9e -C crc32' tar --remove-files -cJf "$1.tar.xz" "$1"
+        }
+    ;;
+    lz) checktools lzip
+        csuf=".lz"
+        compress() {
+          tar --remove-files -cf - "$1" | lzip -m 273 -s 128MiB -o "$1.tar" #.lz is added by lzip; specify the compression parameters manually to get good results
+        }
+    ;;
+    none)
+        csuf=""
+        compress() {
+          tar --remove-files -cf "$1.tar" "$1"
+        }
+    ;;
+    *)  echo "ERROR: Unsupported compression method! Aborting..."; exit 1;;
+  esac
+  hash="$(tar -cf - "$2" | md5sum | cut -f1 -d' ')"
 
-      if [ -f "$CACHE/$hash.tar.xz" ]; then #we have this xz in cache
-        echo "Fetching $d$f from the cache"
-        rm -rf "$f" #remove the folder
-        touch -a "$CACHE/$hash.tar.xz" #mark this xz as accessed
-        cp "$CACHE/$hash.tar.xz" "$f.tar.xz" #copy from the cache
-      else
-        echo "Thread: $threads | FreeRAM: $memory | Compressing Package: $d$f"
-        XZ_OPT=-9e tar --remove-files -cJf "$f.tar.xz" "$f"
-        if [ $? != 0 ]; then
-          echo "ERROR: XZ compression failed, aborting."
-          exit 1
-        fi
-        cp "$f.tar.xz" "$CACHE/$hash.tar.xz" #copy into the cache
-      fi
-      touch -d "2008-02-28 21:33:46.000000000 +0100" "$f.tar.xz"
-      sync
+  if [ -f "$CACHE/$hash.tar$csuf" ]; then #we have this compressed app in cache
+    echo "Fetching $1$2 from the cache"
+    rm -rf "$2" #remove the folder
+    touch -a "$CACHE/$hash.tar$csuf" #mark this cache object as recently accessed
+    cp "$CACHE/$hash.tar$csuf" "$2.tar$csuf" #copy from the cache
+  else
+    if [ -n "$3" ] && [ -n "$4" ]; then
+      echo "Thread: $3 | FreeRAM: $4 | Compressing Package: $1$2"
+    else
+      echo "Compressing Package: $1$2"
+    fi
+    compress "$2"
+    if [ $? != 0 ]; then
+      echo "ERROR: compressing $1$2 failed, aborting."
+      exit 1
+    fi
+    cp "$2.tar$csuf" "$CACHE/$hash.tar$csuf" #copy into the cache
+  fi
+  touch -d "2008-02-28 21:33:46.000000000 +0100" "$2.tar$csuf"
+  sync
 }
 
 createzip() {
+  echo "INFO: Total size uncompressed applications: $(du -hs "$build" | awk '{ print $1 }')"
+
   find "$build" -exec touch -d "2008-02-28 21:33:46.000000000 +0100" {} \;
   cd "$build"
 
-  MEMORY_MIN=800000 # Minimum of RAM required (for single thread) on x86_64 machine [~701MB for xz, 2*25KB for bash and some spare]
+  MEMORY_MIN=800000 # Minimum of RAM required (for single thread) on x86_64 machine based on XZ's documentation (which is a comparable algorithm to lzip)
   THREADS="$(($(nproc)))"
 
   if ! grep -q "MemAvailable:" /proc/meminfo; then
@@ -117,16 +172,20 @@ createzip() {
   for d in $(ls -d */ | grep -v "META-INF"); do #notice that d will end with a slash, ls is safe here because there are no directories with spaces
     cd "$build/$d"
     for f in $(ls); do # ls is safe here because there are no directories with spaces
+      apk="$(find "$f/" -name "*.apk" -type f | head -n 1)"  # we assume the classes*.dex are around the same size in all APK variants
+      if [ -f "$apk" ] && ! (unzip -ql "$apk" | grep -q "META-INF/MANIFEST.MF" && unzip -p "$apk" "META-INF/MANIFEST.MF" | grep -q "$classes.dex"); then
+        printf "%s\t%s\t%d\n" "$f" "odex" "$(($(echo "$(unzip -ql "$apk" "classes*.dex" | tail -n 1)" | awk '{print $1"*(("$2"/2)+2)/1024"}')))" >> "$build/app_sizes.txt"  # estimation heuristic: size-dexfiles * ((#-dexfiles/2)+2); bytes -> KiB
+      fi
       for g in $(ls "$f"); do
         foldersize="$(du -ck "$f/$g/" | tail -n1 | awk '{ print $1 }')"
         printf "%s\t%s\t%d\n" "$f" "$g" "$foldersize" >> "$build/app_sizes.txt"
       done
 
-      # Use parallel mode only if we have memory metric and have more then 1 CPU
+      # Use parallel mode only if we have memory metric and have more than 1 CPU
       if [ $THREADS -gt 1 ] && [ $MEMORY -gt 0 ]; then
         # Wait if we reached RAM or THREADS limit
         tries=0; while true; do
-          # Count still running createxz instances
+          # Count still running compressapp instances
           threads=0; for p in $pidlist; do test -d /proc/$p && threads=$((threads+1)); done
           memory=$(grep "MemAvailable:" /proc/meminfo | awk '{print $2}')
 
@@ -137,7 +196,7 @@ createzip() {
             tries=$((tries+1))
             # If we are trying for more then 180*5 seconds, we bail out (in case machine is to low on memory or CPU we won't run forever!)
             if [ $tries -gt 180 ]; then
-              echo "Seems like this machine is too slow or was unable to collect enought usable memory for compression, aborting."
+              echo "ERROR: Seems like this machine is too slow or was unable to collect enought usable memory for compression, aborting."
               exit 1
             fi
             continue
@@ -146,37 +205,40 @@ createzip() {
          fi
         done
 
-        # Spawn xz creation
-        createxz $d &
+        # Spawn compressapp thread
+        compressapp "$d" "$f" "$threads" "$memory" &
         # Collect resulting PID
         pidlist="$pidlist $!"
       else
-        # Call xz creation
-        createxz $d
+        # Call compressapp
+        compressapp "$d" "$f"
       fi
     done
   done
 
-  echo "Waiting for components to be prepared..."
   for p in $pidlist; do wait $p; done
-  echo "All components are ready."
+
+  echo "INFO: Total size compressed applications: $(du -hs "$build" | awk '{ print $1 }')"
 
   unsignedzip="$BUILD/$ARCH/$API/$VARIANT.zip"
-  signedzip="$OUT/open_gapps-$PLATFORM-enrc2b-$VARIANT-$DATE.zip"
+  if [ -n "$OUTFILE" ]; then
+    signedzip="$( eval "echo \"$OUTFILE\"")"
+  else
+    signedzip="$OUTFOLDER/open_gapps-$ARCH-$PLATFORM-$VARIANT-$DATE-UNOFFICIAL.zip"
+  fi
 
   if [ -f "$unsignedzip" ]; then
     rm "$unsignedzip"
   fi
   cd "$build"
   echo "Packaging and signing $signedzip..."
-  # Store only the files in the zip without compressing them (-0 switch): further compression will be useless and will slow down the building process
-  zip -q -r -D -X -0 "$unsignedzip" ./* #don't doublequote zipfolders, contains multiple (safe) arguments
+  zip -q -r -D -X -$ZIPCOMPRESSIONLEVEL "$unsignedzip" ./* #don't doublequote zipfolders, contains multiple (safe) arguments
   cd "$TOP"
   signzip
 }
 
 signzip() {
-  install -d "$OUT"
+  install -d "$(dirname "$signedzip")"
   if [ -f "$signedzip" ]
   then
     rm "$signedzip"

@@ -13,8 +13,8 @@
 #
 
 #Check architecture
-if { [ "$1" != "arm" ]; } || [ -z "$2" ]; then
-  echo "Usage: $0 (arm) API_LEVEL"
+if { [ "$1" != "arm" ] && [ "$1" != "arm64" ] && [ "$1" != "x86" ] && [ "$1" != "x86_64" ]; } || [ -z "$2" ]; then
+  echo "Usage: $0 (arm|arm64|x86|x86_64) API_LEVEL [VARIANT]"
   exit 1
 fi
 
@@ -26,36 +26,54 @@ API="$2"
 VARIANT="$3"
 BUILD="$TOP/build"
 CACHE="$TOP/cache"
-OUT="$TOP/out"
 SOURCES="$TOP/sources"
 SCRIPTS="$TOP/scripts"
 CERTIFICATES="$SCRIPTS/certificates"
-#CERTIFICATEFILE="" #this can be set to a filepath to use as certificate file for signing
-#KEYFILE="" #this can be set to a filepath to use as key file for signing
-#OPENGAPPSLICENSEFILE="" #this can be set to a filepath to include as a LICENSE file
+#CERTIFICATEFILE=""  # this can be set to a filepath to use as certificate file for signing
+#KEYFILE=""  # this can be set to a filepath to use as key file for signing
+#OPENGAPPSLICENSEFILE=""  # this can be set to a filepath to include as a LICENSE file
+OUTFOLDER="$TOP/out"
+#OUTFILE='$OUTFOLDER/open_gapps-$ARCH-$PLATFORM-$VARIANT-$DATE.zip'  # this can be set to a filepath to use as alternative outputfile; use ' to allow variables to be evaluated later
+LOGFOLDER="$TOP/log"
+#VERSIONLOG='$LOGFOLDER/open_gapps-$ARCH-$PLATFORM-$VARIANT-$DATE.versionlog.txt'  # if set to a non-zero value a version log will be created at the set filepath; use ' to allow variables to be evaluated later
+COMPRESSION="xz" # lz # none # this sets the default compression method, override is possible in compressapp
+#ZIPALIGNRECOMPRESS=""  # if set to a non-zero value, APKs will be recompressed with zopfli during zipalign
+ZIPCOMPRESSIONLEVEL="0"  # Store only the files in the zip without compressing them (-0 switch): further compression will be useless and will slow down the building process
+# shellcheck source=scripts/inc.aromadata.sh
 . "$SCRIPTS/inc.aromadata.sh"
+# shellcheck source=scripts/inc.buildhelper.sh
 . "$SCRIPTS/inc.buildhelper.sh"
+# shellcheck source=scripts/inc.buildtarget.sh
 . "$SCRIPTS/inc.buildtarget.sh"
+# shellcheck source=scripts/inc.compatibility.sh
 . "$SCRIPTS/inc.compatibility.sh"
+# shellcheck source=scripts/inc.installer.sh
 . "$SCRIPTS/inc.installer.sh"
+# shellcheck source=scripts/inc.packagetarget.sh
 . "$SCRIPTS/inc.packagetarget.sh"
+# shellcheck source=scripts/inc.sourceshelper.sh
 . "$SCRIPTS/inc.sourceshelper.sh"
+# shellcheck source=scripts/inc.tools.sh
 . "$SCRIPTS/inc.tools.sh"
 
 # Check tools
-checktools aapt coreutils java jarsigner unzip zip tar xz realpath zipalign
+checktools aapt coreutils java jarsigner unzip zip tar realpath zipalign
 
 case "$API" in
   19) PLATFORM="4.4";;
   21) PLATFORM="5.0";;
   22) PLATFORM="5.1";;
   23) PLATFORM="6.0";;
-  *)  echo "ERROR: Unknown API version! Aborting..."
-  exit 1;;
+  *)  echo "ERROR: Unknown API version! Aborting..."; exit 1;;
 esac
+
+if [ "$API" -lt "21" ] && [ "$ARCH" != "arm" ] && [ "$ARCH" != "x86" ]; then
+  echo "ERROR! Platform $ARCH cannot be built on API level $API"; exit 1
+fi
 
 get_supported_variants "$VARIANT"
 SUPPORTEDVARIANTS="$supported_variants"
+GAPPSREMOVEVARIANT="$gappsremove_variant"
 
 if [ -z "$SUPPORTEDVARIANTS" ]; then
   echo "ERROR: Unknown variant! aborting..."; exit 1
@@ -71,13 +89,15 @@ if [ "$ARCH" != "arm" ] && [ "$ARCH" != "arm64" ]; then #For all non-arm(64) pla
 fi
 if [ "$API" -lt "22" ]; then
   case "$VARIANT" in
-    super)  echo "ERROR! Variant $VARIANT cannot be built on API level $API"; exit 1;;
+    super|tvstock)  echo "ERROR! Variant $VARIANT cannot be built on API level $API"; exit 1;;
   esac
 fi;
+echo "Generating Open GApps $VARIANT package for $ARCH with API level $API..."
 
 kitkatpathshack	#kitkat has different apk and lib paths which impact installer.data
 kitkatdatahack #kitkat installs some applications on /data/ instead of /system/
 keyboardlibhack #only 5.0+ has gestures for the aosp keyboard possible, which impact installer.data and an extra file in the package
+api19hack #4.4- has a no setupwizard product type
 api21hack #only 5.0+ supports google tag
 api22hack #only 5.1+ supports google webview (Stock Google 5.0 ROMs too, but we merged stock and fornexus) and GCS
 api23hack #only on 6.0+ we also include Google Contacts, Dialer, Calculator, Packageinstaller and Configupdater

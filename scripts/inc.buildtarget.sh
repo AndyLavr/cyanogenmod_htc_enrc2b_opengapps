@@ -12,7 +12,9 @@
 #
 
 # Static definitions, lists of packages per variant and in the core
-gappscore="framework
+# setupwizard is defined in in.compatibility.sh api19hack
+gappscore="defaultetc
+defaultframework
 googlebackuptransport
 googlecontactssync
 googlefeedback
@@ -21,13 +23,11 @@ googlepartnersetup
 gmscore
 gsfcore
 gsflogin
-setupwizard
 vending"
 
 gappscore_optional=""
 
-gappssuper="androidforwork
-androidpay
+gappssuper="androidpay
 dmagent
 earth
 gcs
@@ -91,6 +91,41 @@ launcher
 mms
 picotts"
 
+gappstvcore="bugreport
+configupdater
+googlebackuptransport
+gsfcore
+notouch
+setupwraith
+tvetc
+tvframework
+tvgmscore
+tvvending"
+
+gappstvstock="backdrop
+castreceiver
+gamepadpairing
+globalkey
+livechannels
+overscan
+remotecontrol
+secondscreensetup
+secondscreenauthbridge
+talkback
+tvcustomization
+tvlauncher
+tvkeyboardgoogle
+tvmovies
+tvmusic
+tvpackageinstallergoogle
+tvpairing
+tvplaygames
+tvremote
+tvsearch
+tvwidget
+tvyoutube
+webviewgoogle"
+
 miniremove=""
 
 case "$ARCH" in
@@ -107,24 +142,31 @@ get_fallback_arch(){
 get_supported_variants(){
   case "$1" in
     aroma)          if [ "$API" -ge "22" ]; then
-                      supported_variants="pico nano micro mini full stock super";
+                      supported_variants="pico nano micro mini full stock super"
                     else
-                      supported_variants="pico nano micro mini full stock";
-                    fi;;
-    super)          supported_variants="pico nano micro mini full stock super";;
-    stock)          supported_variants="pico nano micro mini full stock";;
-    full)           supported_variants="pico nano micro mini full";;
-    mini)           supported_variants="pico nano micro mini";;
-    micro)          supported_variants="pico nano micro";;
-    nano)           supported_variants="pico nano";;
-    pico)           supported_variants="pico";;
+                      supported_variants="pico nano micro mini full stock"
+                    fi
+                    gappsremove_variant="super";;
+    super)          supported_variants="pico nano micro mini full stock super"; gappsremove_variant="super";;
+    stock)          supported_variants="pico nano micro mini full stock"; gappsremove_variant="super";;
+    full)           supported_variants="pico nano micro mini full"; gappsremove_variant="super";;
+    mini)           supported_variants="pico nano micro mini"; gappsremove_variant="super";;
+    micro)          supported_variants="pico nano micro"; gappsremove_variant="super";;
+    nano)           supported_variants="pico nano"; gappsremove_variant="super";;
+    pico)           supported_variants="pico"; gappsremove_variant="super";;
+
+    tvstock)        supported_variants="tvstock"; gappsremove_variant="tvstock";;
+
     *)              supported_variants="";;
   esac
 }
 
 get_gapps_list(){
-  #Compile the list of applications that will be build for this variant
-  gapps_list="$gappscore $gappscore_optional"
+  # Compile the list of applications that will be build for this variant
+  case "$1" in
+    tv*) gapps_list="$gappstvcore $gappstvcore_optional";;
+    *)  gapps_list="$gappscore $gappscore_optional";;
+  esac
   for variant in $1; do
     eval "addtogapps=\"\$gapps$variant \$gapps${variant}_optional\""
     gapps_list="$gapps_list $addtogapps"
@@ -134,7 +176,7 @@ get_gapps_list(){
 buildtarget() {
 preparebuildarea
 
-#Compile the list of applications that will have to be build for this variant
+# Compile the list of applications that will have to be build for this variant
 get_gapps_list "$SUPPORTEDVARIANTS"
 gapps="$gapps_list"
 
@@ -144,10 +186,10 @@ for app in $gapps; do
     buildapp "$packagename" "$packagemaxapi" "$packagetype/$app" "$packagetarget"
   fi
   for file in $packagefiles; do
-    buildfile "$file" "$packagetype/$app/common"
+    buildfile "$file" "$packagetype/$app" "common"
   done
   for lib in $packagelibs; do
-    buildsystemlib "$lib" "$packagetype/$app/common"
+    buildsystemlib "$lib" "$packagetype/$app" "common"
   done
 done
 
@@ -164,30 +206,44 @@ get_package_info(){
   packagemaxapi="$API"
   packagegappsremove=""
   case "$1" in
-    configupdater)            packagetype="Core"; packagename="com.google.android.configupdater"; packagetarget="priv-app/ConfigUpdater";;
-    framework)                packagetype="Core"; packagefiles="etc framework";;
+    # Common GApps
+    configupdater)            packagetype="Core"; packagename="com.google.android.configupdater"; packagetarget="priv-app/ConfigUpdater";; #On Android TV this is in 'app'
+    googlebackuptransport)    packagetype="Core"; packagename="com.google.android.backuptransport"; packagetarget="priv-app/GoogleBackupTransport";;
+    gsfcore)                  packagetype="Core"; packagename="com.google.android.gsf"; packagetarget="priv-app/GoogleServicesFramework";;
+    talkback)                 packagetype="GApps"; packagename="com.google.android.marvin.talkback"; packagetarget="app/talkback";;
+    webviewgoogle)            packagetype="GApps"; packagename="com.google.android.webview"; packagetarget="app/WebViewGoogle"; packagegappsremove="$webviewgappsremove";;
+
+    # Regular GApps
+    defaultetc)               packagetype="Core"; packagefiles="etc/preferred-apps/google.xml etc/sysconfig/google.xml etc/sysconfig/google_build.xml etc/sysconfig/whitelist_com.android.omadm.service.xml";;
+    defaultframework)         packagetype="Core"; packagefiles="etc/permissions/com.google.android.maps.xml etc/permissions/com.google.android.media.effects.xml etc/permissions/com.google.widevine.software.drm.xml framework/com.google.android.maps.jar framework/com.google.android.media.effects.jar framework/com.google.widevine.software.drm.jar";;
     gmscore)                  packagetype="Core"; packagename="com.google.android.gms"; packagetarget="priv-app/PrebuiltGmsCore";;
     googlecontactssync)       packagetype="Core"; packagename="com.google.android.syncadapters.contacts"; packagetarget="app/GoogleContactsSyncAdapter";;
-    googlebackuptransport)    packagetype="Core"; packagename="com.google.android.backuptransport"; packagetarget="priv-app/GoogleBackupTransport";;
     googlefeedback)           packagetype="Core"; packagename="com.google.android.feedback"; packagetarget="priv-app/GoogleFeedback";;
-    gsfcore)                  packagetype="Core"; packagename="com.google.android.gsf"; packagetarget="priv-app/GoogleServicesFramework";;
-    gsflogin)                 packagetype="Core"; packagename="com.google.android.gsf.login"; packagetarget="priv-app/GoogleLoginService";;
     googleonetimeinitializer) packagetype="Core"; packagename="com.google.android.onetimeinitializer"; packagetarget="priv-app/GoogleOneTimeInitializer";;
     googlepartnersetup)       packagetype="Core"; packagename="com.google.android.partnersetup"; packagetarget="priv-app/GooglePartnerSetup";;
-    setupwizard)              packagetype="Core"; packagename="com.google.android.setupwizard"; packagetarget="priv-app/SetupWizard";;
+    gsflogin)                 packagetype="Core"; packagename="com.google.android.gsf.login"; packagetarget="priv-app/GoogleLoginService";;
+    setupwizard)              packagetype="Core"; packagename="com.google.android.setupwizard"; packagetarget="priv-app/SetupWizard";; #KitKat only
+    setupwizarddefault)       packagetype="Core"; packagename="com.google.android.setupwizard.default"; packagetarget="priv-app/SetupWizard";;
+    setupwizardtablet )       packagetype="Core"; packagename="com.google.android.setupwizard.tablet"; packagetarget="priv-app/SetupWizard";;
     vending)                  packagetype="Core"; packagename="com.android.vending"; packagetarget="priv-app/Phonesky";;
-    androidforwork)           packagetype="GApps"; packagename="com.google.android.androidforwork"; packagetarget="priv-app/AndroidForWork";;
+
     androidpay)               packagetype="GApps"; packagename="com.google.android.apps.walletnfcrel"; packagetarget="app/Wallet";;
     books)                    packagetype="GApps"; packagename="com.google.android.apps.books"; packagetarget="app/Books";;
     calculatorgoogle)         packagetype="GApps"; packagename="com.google.android.calculator"; packagetarget="app/CalculatorGoogle";;
     calendargoogle)           packagetype="GApps"; packagename="com.google.android.calendar"; packagetarget="app/CalendarGooglePrebuilt";;
     calsync)                  packagetype="GApps"; packagename="com.google.android.syncadapters.calendar"; packagetarget="app/GoogleCalendarSyncAdapter";;
-    cameragoogle)             packagetype="GApps"; packagename="com.google.android.googlecamera"; packagetarget="app/GoogleCamera";;
-    cameragooglelegacy)       packagetype="GApps"; packagename="com.google.android.googlecamera"; packagetarget="app/GoogleCamera"; packagemaxapi="22";;
+    cameragoogle)             packagetype="GApps"; packagename="com.google.android.googlecamera"; packagetarget="app/GoogleCamera";
+                              if [ "$API" -ge "23" ]; then  # On Marshmallow+ we use the new GoogleCamera
+                                packagefiles="etc/permissions/com.google.android.camera.experimental2015.xml framework/com.google.android.camera.experimental2015.jar"
+                              else
+                                packagefiles="etc/permissions/com.google.android.camera2.xml framework/com.google.android.camera2.jar"
+                              fi;;
+    cameragooglelegacy)       packagetype="GApps"; packagename="com.google.android.googlecamera"; packagetarget="app/GoogleCamera"; packagemaxapi="22"; packagefiles="etc/permissions/com.google.android.camera2.xml framework/com.google.android.camera2.jar";;
     chrome)                   packagetype="GApps"; packagename="com.android.chrome"; packagetarget="app/Chrome";;
     clockgoogle)              packagetype="GApps"; packagename="com.google.android.deskclock"; packagetarget="app/PrebuiltDeskClockGoogle";;
     cloudprint)               packagetype="GApps"; packagename="com.google.android.apps.cloudprint"; packagetarget="app/CloudPrint2";;
     contactsgoogle)           packagetype="GApps"; packagename="com.google.android.contacts"; packagetarget="priv-app/GoogleContacts";;
+    dialerframework)          packagetype="GApps"; packagefiles="etc/permissions/com.google.android.dialer.support.xml framework/com.google.android.dialer.support.jar";;
     dialergoogle)             packagetype="GApps"; packagename="com.google.android.dialer"; packagetarget="priv-app/GoogleDialer";;
     dmagent)                  packagetype="GApps"; packagename="com.google.android.apps.enterprise.dmagent"; packagetarget="app/DMAgent";;
     docs)                     packagetype="GApps"; packagename="com.google.android.apps.docs.editors.docs"; packagetarget="app/EditorsDocs";;
@@ -217,6 +273,7 @@ get_package_info(){
     googleplus)               packagetype="GApps"; packagename="com.google.android.apps.plus"; packagetarget="app/PlusOne";;
     googletts)                packagetype="GApps"; packagename="com.google.android.tts"; packagetarget="app/GoogleTTS";;
     hangouts)                 packagetype="GApps"; packagename="com.google.android.talk"; packagetarget="app/Hangouts";;
+    hotword)                  packagetype="GApps"; packagename="com.android.hotwordenrollment"; packagetarget="priv-app/HotwordEnrollment";;
     indic)                    packagetype="GApps"; packagename="com.google.android.apps.inputmethod.hindi"; packagetarget="app/GoogleHindiIME";;
     japanese)                 packagetype="GApps"; packagename="com.google.android.inputmethod.japanese"; packagetarget="app/GoogleJapaneseInput";;
     korean)                   packagetype="GApps"; packagename="com.google.android.inputmethod.korean"; packagetarget="app/KoreanIME";;
@@ -238,13 +295,48 @@ get_package_info(){
     slides)                   packagetype="GApps"; packagename="com.google.android.apps.docs.editors.slides"; packagetarget="app/EditorsSlides";;
     speech)                   packagetype="GApps"; packagefiles="usr/srec/en-US/";;
     street)                   packagetype="GApps"; packagename="com.google.android.street"; packagetarget="app/Street";;
-    talkback)                 packagetype="GApps"; packagename="com.google.android.marvin.talkback"; packagetarget="app/talkback";;
     taggoogle)                packagetype="GApps"; packagename="com.google.android.tag"; packagetarget="priv-app/TagGoogle";;
     translate)                packagetype="GApps"; packagename="com.google.android.apps.translate"; packagetarget="app/TranslatePrebuilt";;
-    webviewgoogle)            packagetype="GApps"; packagename="com.google.android.webview"; packagetarget="app/WebViewGoogle"; packagegappsremove="$webviewgappsremove";;
     youtube)                  packagetype="GApps"; packagename="com.google.android.youtube"; packagetarget="app/YouTube";;
     zhuyin)                   packagetype="GApps"; packagename="com.google.android.apps.inputmethod.zhuyin"; packagetarget="app/GoogleZhuyinIME";;
-    swypelibs)                packagetype="Optional"; packagelibs="libjni_latinimegoogle.so";;
+
+    # TV GApps
+    bugreport)                packagetype="Core"; packagename="com.google.tungsten.bugreportsender"; packagetarget="app/BugReportSender";;
+    notouch)                  packagetype="Core"; packagename="com.google.android.gsf.notouch"; packagetarget="app/NoTouchAuthDelegate";;
+    setupwraith)              packagetype="Core"; packagename="com.google.android.tungsten.setupwraith"; packagetarget="priv-app/SetupWraith";;
+    tvetc)                    packagetype="Core"; packagefiles="etc/sysconfig/google.xml etc/sysconfig/google_build.xml";;
+    tvframework)              packagetype="Core"; packagefiles="etc/permissions/com.google.android.pano.v1.xml etc/permissions/com.google.widevine.software.drm.xml framework/com.google.android.pano.v1.jar framework/com.google.widevine.software.drm.jar";;
+    tvgmscore)                packagetype="Core"; packagename="com.google.android.gms.leanback"; packagetarget="priv-app/PrebuiltGmsCorePano";;
+    tvvending)                packagetype="Core"; packagename="com.android.vending.leanback"; packagetarget="priv-app/PhoneskyKamikazeCanvas";;
+
+    backdrop)                 packagetype="GApps"; packagename="com.google.android.backdrop.leanback"; packagetarget="app/Backdrop";;
+    castreceiver)             packagetype="GApps"; packagename="com.google.android.apps.mediashell.leanback" packagetarget="priv-app/AndroidMediaShell";;
+    gamepadpairing)           packagetype="GApps"; packagename="com.google.android.tv.remotepairing" packagetarget="priv-app/GamepadPairingService";;
+    globalkey)                packagetype="GApps"; packagename="com.google.android.athome.globalkeyinterceptor" packagetarget="priv-app/GlobalKeyInterceptor";;
+    livechannels)             packagetype="GApps"; packagename="com.google.android.tv.leanback" packagetarget="priv-app/TV";;
+    overscan)                 packagetype="GApps"; packagename="com.google.android.tungsten.overscan" packagetarget="priv-app/Overscan";;
+    remotecontrol)            packagetype="GApps"; packagename="com.google.android.athome.remotecontrol" packagetarget="priv-app/RemoteControlService";;
+    secondscreensetup)        packagetype="GApps"; packagename="com.google.android.sss"; packagetarget="app/SecondScreenSetup";;
+    secondscreenauthbridge)   packagetype="GApps"; packagename="com.google.android.sss.authbridge"; packagetarget="app/SecondScreenSetupAuthBridge";;
+    tvcustomization)          packagetype="GApps"; packagename="com.google.android.atv.customization" packagetarget="priv-app/AtvCustomization";;
+    tvlauncher)               packagetype="GApps"; packagename="com.google.android.leanbacklauncher.leanback" packagetarget="priv-app/LeanbackLauncher";;
+    tvkeyboardgoogle)         packagetype="GApps"; packagename="com.google.android.leanback.ime"; packagetarget="app/LeanbackIme";;
+    tvmovies)                 packagetype="GApps"; packagename="com.google.android.videos.leanback"; packagetarget="app/VideosPano";;
+    tvmusic)                  packagetype="GApps"; packagename="com.google.android.music"; packagetarget="app/Music2Pano";;  # Only change is the foldername
+    tvpackageinstallergoogle) packagetype="GApps"; packagename="com.google.android.pano.packageinstaller"; packagetarget="app/CanvasPackageInstaller";;
+    tvpairing)                packagetype="GApps"; packagename="com.google.android.fugu.pairing"; packagetarget="app/FuguPairingTutorial";;
+    tvplaygames)              packagetype="GApps"; packagename="com.google.android.play.games.leanback"; packagetarget="app/PlayGames";;  # Only change is leanback in the packagename
+    tvremote)                 packagetype="GApps"; packagename="com.google.android.tv.remote" packagetarget="priv-app/AtvRemoteService"; packagelibs="libatv_uinputbridge.so";;
+    tvsearch)                 packagetype="GApps"; packagename="com.google.android.katniss.leanback"; packagetarget="priv-app/Katniss";;
+    tvvoiceinput)             packagetype="GApps"; packagename="com.google.android.tv.voiceinput"; packagetarget="app/TvVoiceInput";;  # Only in 5.1
+    tvwidget)                 packagetype="GApps"; packagename="com.google.android.atv.widget"; packagetarget="app/AtvWidget";;
+    tvyoutube)                packagetype="GApps"; packagename="com.google.android.youtube.tv.leanback"; packagetarget="app/YouTubeLeanback";;
+
+    # Swypelibs
+    swypelibs)                packagetype="Optional"; packagelibs="libjni_latinimegoogle.so";
+                              if [ "$API" -ge "23" ]; then  # On Marshmallow+ there is an extra lib
+                                packagelibs="$packagelibs libjni_keyboarddecoder.so"
+                              fi;;
 
     *)              echo "ERROR! Missing build rule for application with keyword $1"; exit 1;;
   esac

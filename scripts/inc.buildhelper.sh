@@ -17,6 +17,12 @@ preparebuildarea() {
   rm -rf "$build"
   install -d "$build"
   install -d "$CACHE"
+  logfile=""
+  if [ -n "$VERSIONLOG" ]; then
+    logfile="$(eval "echo \"$VERSIONLOG\"")"
+    install -d "$(dirname "$logfile")"
+    printf "%-6s%3s| %-46s| %-33s| %s\n---------------------------------------------------------------------------------------------------\n" "Arch." "API" "Application / File / Folder" "Version Name" "DPIs" > "$logfile"
+  fi
 }
 
 copy() {
@@ -31,24 +37,30 @@ copy() {
 }
 
 buildfile() {
-  if [ -z "$3" ]; then usearch="$ARCH"
-  else usearch="$3"; fi #allows for an override
+  if [ -z "$4" ]; then usearch="$ARCH"
+  else usearch="$4"; fi #allows for an override
+
+  case "$usearch" in
+    all) targetarch="common";;  # technically with our currrent APKs-set, every that is 'all' is de-facto also 'common'
+    *) targetarch="$usearch";;
+  esac
 
   if [ -e "$SOURCES/$usearch/$1" ]; then #check if directory or file exists
     if [ -d "$SOURCES/$usearch/$1" ]; then #if we are handling a directory
-      targetdir="$build/$2/$1"
+      targetdir="$build/$2-$targetarch/$3/$1"
     else
-      targetdir="$build/$2/$(dirname "$1")"
-    fi
-    if [ "$usearch" != "$ARCH" ]; then
-      echo "INFO: Falling back from $ARCH to $usearch for file $1"
+      targetdir="$build/$2-$targetarch/$3/$(dirname "$1")"
     fi
     install -d "$targetdir"
+    printf "%6s    %s\n" "$usearch" "$1"
+    if [ -n "$logfile" ]; then
+      printf "%6s   | %-s\n" "$usearch" "$1">> "$logfile"
+    fi
     copy "$SOURCES/$usearch/$1" "$targetdir" #if we have a file specific to this architecture
   else
     get_fallback_arch "$usearch"
     if [ "$usearch" != "$fallback_arch" ]; then
-      buildfile "$1" "$2" "$fallback_arch"
+      buildfile "$1" "$2" "$3" "$fallback_arch"
     else
       echo "ERROR: No fallback available. Failed to build file $1"
       exit 1
@@ -58,9 +70,10 @@ buildfile() {
 
 buildsystemlib() {
   libname="$1"
-  liblocation="$2"
-  if [ -z "$3" ]; then usearch="$ARCH"
-  else usearch="$3"; fi #allows for an override
+  ziplocation="$2"
+  targetlocation="$3"
+  if [ -z "$4" ]; then usearch="$ARCH"
+  else usearch="$4"; fi #allows for an override
 
   fallback=""
   case "$libname" in
@@ -68,16 +81,24 @@ buildsystemlib() {
     fallback="true";;
   esac
 
+  case "$usearch" in
+    all) targetarch="common";;  # technically with our currrent APKs-set, every that is 'all' is de-facto also 'common'
+    *) targetarch="$usearch";;
+  esac
+
   if getsystemlibforapi "$libname" "$usearch" "$API"; then
-    printf "%44s %6s-%s\n" "$libname" "$usearch" "$api"
-    install -D -p "$sourcelib" "$build/$liblocation/$targetlib"
+    printf "%6s-%s %s\n" "$usearch" "$api" "$libname"
+    if [ -n "$logfile" ]; then
+      printf "%6s-%s| %-s\n" "$usearch" "$api" "$libname" >> "$logfile"
+    fi
+    install -D -p "$sourcelib" "$build/$ziplocation-lib-$targetarch/$targetlocation/$targetlib"
   else
     fallback="true"
   fi
   if [ -n "$fallback" ]; then
     get_fallback_arch "$usearch"
     if [ "$usearch" != "$fallback_arch" ]; then
-      buildsystemlib "$libname" "$liblocation" "$fallback_arch"
+      buildsystemlib "$libname" "$ziplocation" "$targetlocation" "$fallback_arch"
     else
       echo "ERROR: No fallback available. Failed to build lib $libname"
       exit 1
@@ -120,33 +141,42 @@ buildapp() {
 
   minapihack #Some packages need a minimal api level to maintain compatibility with the OS
 
-  if getapksforapi "$package" "$usearch" "$API" "$useminapi"; then
+  if getapksforapi "$package" "$usearch" "$usemaxapi" "$useminapi"; then
     baseversionname=""
     for dpivariant in $(echo "$sourceapks" | tr ' ' ''); do #we replace the spaces with a special char to survive the for-loop
       dpivariant="$(echo "$dpivariant" | tr '' ' ')" #and we place the spaces back again
       getapkproperties "$dpivariant" #get versionname
-      versionname="$(printf "$versionname" | cut -d ' ' -f 1)" #always cut off everything in the versionname after the space since that indicates a part that is ALWAYS at minimum dpi-specific
+      versionname="$(printf "%s" "$versionname" | cut -d ' ' -f 1)" #always cut off everything in the versionname after the space since that indicates a part that is ALWAYS at minimum dpi-specific
       versionnamehack #Some packages have a different versionname, when the actual version is equal
       systemlibhack #Some packages want their libs installed as system libs
       if [ "$API" -le "19" ] || [ "$systemlib" = "true" ]; then
-        liblocation="$ziplocation/common"
+        liblocation="$ziplocation-$usearch/common"
       else
-        liblocation="$ziplocation/common/$targetlocation"
+        liblocation="$ziplocation-$usearch/common/$targetlocation"
       fi
 
       if [ -z "$baseversionname" ]; then
         baseversionname=$versionname
         buildlib "$dpivariant" "$liblocation" "$usearch" #Use the libs from this baseversion
-        printf "%44s %6s-%-2s %27s" "$package" "$usearch" "$api" "$baseversionname"
+        printf "%6s-%-2s %-46s %33s" "$usearch" "$api" "$1" "$baseversionname"  # use $1 instead of $package to show the foldername packagename instead of the getapkproperties-name to get the setupwizard name right
+        if [ -n "$logfile" ]; then
+          printf "%6s-%-2s| %-46s| %-33s|" "$usearch" "$api" "$1" "$baseversionname" >> "$logfile"
+        fi
       fi
       if [ "$versionname" = "$baseversionname" ]; then
         density=$(basename "$(dirname "$dpivariant")")
-        buildapk "$dpivariant" "$ziplocation/$density/$targetlocation"
+        buildapk "$dpivariant" "$ziplocation-$usearch/$density/$targetlocation"
         printf " %s" "$density"
-        echo "$ziplocation/$density/" >> "$build/app_densities.txt"
+        if [ -n "$logfile" ]; then
+          printf " %s" "$density" >> "$logfile"
+        fi
+        echo "$ziplocation-$usearch/$density/" >> "$build/app_densities.txt"
       fi
     done
     printf "\n"
+    if [ -n "$logfile" ]; then
+      printf "\n" >> "$logfile"
+    fi
   else
     get_fallback_arch "$usearch"
     if [ "$usearch" != "$fallback_arch" ]; then

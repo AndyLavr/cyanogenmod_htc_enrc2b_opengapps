@@ -53,16 +53,18 @@ case "$1" in
   post-restore)
     # Recreate required symlinks (from GApps Installer)
 
+    # Re-pre-ODEX APKs (from GApps Installer)
+
     # Remove any empty folders we may have created during the removal process
-    for i in /system/app /system/priv-app /system/vendor/pittpatt /system/usr/srec /system/vendor/pittpatt; do
+    for i in /system/app /system/priv-app /system/vendor/pittpatt /system/usr/srec; do
         find $i -type d | xargs -r rmdir -p --ignore-fail-on-non-empty;
     done;
     # Fix ownership/permissions and clean up after backup and restore from /sdcard
-    find /system/vendor/pittpatt -type d -exec chown 0.2000 '{}' \; # Change pittpatt folders to root:shell per Google Factory Settings
+    find /system/vendor/pittpatt -type d -exec chown 0:2000 '{}' \; # Change pittpatt folders to root:shell per Google Factory Settings
     for i in $(list_files); do
-      busybox chown root:root "/system/$i"
-      busybox chmod 644 "/system/$i"
-      busybox chmod 755 $(busybox dirname "/system/$i")
+      chown root:root "/system/$i"
+      chmod 644 "/system/$i"
+      chmod 755 $(dirname "/system/$i")
     done
     rm -rf /sdcard/tmp-gapps
   ;;
