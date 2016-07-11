@@ -28,6 +28,9 @@ local.properties
 # Project files
 .project
 
+#APKs that are marked as potentially dangerous
++*.err
+
 # Include submodules
 sources
 sources/all
