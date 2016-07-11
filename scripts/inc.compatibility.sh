@@ -193,7 +193,7 @@ minapihack(){
 
 provisionremovalhack(){
   if [ "$API" -le "22" ]; then
-    tee -a "$build/META-INF/com/google/android/update-binary" > /dev/null <<'EOFILE'
+    tee -a "$1" > /dev/null <<'EOFILE'
 # On Pre-Marshmallow the Provision folder does always have to be removed (it conflicts with SetupWizard.apk)
 aosp_remove_list="${aosp_remove_list}provision"$'\n';
 EOFILE
@@ -212,12 +212,12 @@ systemlibhack(){
 
 universalremoverhack(){
   if [ "$API" -le "19" ]; then
-    tee -a "$build/META-INF/com/google/android/update-binary" > /dev/null <<'EOFILE'
+    tee -a "$1" > /dev/null <<'EOFILE'
                     1)  user_remove_folder_list="${user_remove_folder_list}$(find "$folder" -type f -iname "$testapk")"$'\n'; # Add found file to list
                         user_remove_folder_list="${user_remove_folder_list}$(printf "$(find "$folder" -type f -iname "$testapk")" | rev | cut -c 4- | rev)odex"$'\n'; # Add odex to list
 EOFILE
   else
-    tee -a "$build/META-INF/com/google/android/update-binary" > /dev/null <<'EOFILE'
+    tee -a "$1" > /dev/null <<'EOFILE'
                     1)  user_remove_folder_list="${user_remove_folder_list}$(dirname "$(find "$folder" -type f -iname "$testapk")")"$'\n'; # Add found folder to list
 EOFILE
   fi
