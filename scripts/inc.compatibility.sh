@@ -102,57 +102,57 @@ kitkatdatahack(){
 install -d /data/app-lib/
 # Handle broken lib configuration on KitKat by putting Hangouts on /data/
 if ( contains "$gapps_list" "hangouts" ); then
-  unzip -o "$ZIP" "GApps/hangouts.tar.xz" -d /tmp;
-  tarpath="/tmp/GApps/hangouts.tar.xz";
+  unzip -o "$ZIP" "GApps/hangouts.tar.xz" -d $TMP;
+  tarpath="$TMP/GApps/hangouts.tar.xz";
   which_dpi "hangouts";
-  tar -xJf "$tarpath" -C /tmp "$dpiapkpath";
-  cp -rf /tmp/$dpiapkpath/priv-app/Hangouts.apk /data/app/com.google.android.talk.apk;
-  rm -rf /tmp/$dpiapkpath;
-  tar -xJf "$tarpath" -C /tmp "common";
-  cp -rf /tmp/hangouts/common/lib. /data/app-lib/com.google.android.talk/;
-  rm -rf /tmp/hangouts/common;
+  tar -xJf "$tarpath" -C $TMP "$dpiapkpath";
+  cp -rf $TMP/$dpiapkpath/priv-app/Hangouts.apk /data/app/com.google.android.talk.apk;
+  rm -rf $TMP/$dpiapkpath;
+  tar -xJf "$tarpath" -C $TMP "common";
+  cp -rf $TMP/hangouts/common/lib. /data/app-lib/com.google.android.talk/;
+  rm -rf $TMP/hangouts/common;
   rm -f "$tarpath";
   gapps_list=${gapps_list/hangouts};
 fi;
 # Handle broken lib configuration on KitKat by putting Google+ on /data/
 if ( contains "$gapps_list" "googleplus" ); then
-  unzip -o "$ZIP" "GApps/googleplus.tar.xz" -d /tmp;
-  tarpath="/tmp/GApps/googleplus.tar.xz";
+  unzip -o "$ZIP" "GApps/googleplus.tar.xz" -d $TMP;
+  tarpath="$TMP/GApps/googleplus.tar.xz";
   which_dpi "googleplus";
-  tar -xJf "$tarpath" -C /tmp "$dpiapkpath";
-  cp -rf /tmp/$dpiapkpath/app/PlusOne.apk /data/app/com.google.android.apps.plus.apk;
-  rm -rf /tmp/$dpiapkpath;
-  tar -xJf "$tarpath" -C /tmp "common";
-  cp -rf /tmp/googleplus/common/lib. /data/app-lib/com.google.android.apps.plus/;
-  rm -rf /tmp/googleplus/common;
+  tar -xJf "$tarpath" -C $TMP "$dpiapkpath";
+  cp -rf $TMP/$dpiapkpath/app/PlusOne.apk /data/app/com.google.android.apps.plus.apk;
+  rm -rf $TMP/$dpiapkpath;
+  tar -xJf "$tarpath" -C $TMP "common";
+  cp -rf $TMP/googleplus/common/lib. /data/app-lib/com.google.android.apps.plus/;
+  rm -rf $TMP/googleplus/common;
   rm -f "$tarpath";
   gapps_list=${gapps_list/googleplus};
 fi;
 # Handle broken lib configuration on KitKat by putting Photos on /data/
 if ( contains "$gapps_list" "photos" ); then
-  unzip -o "$ZIP" "GApps/photos.tar.xz" -d /tmp;
-  tarpath="/tmp/GApps/photos.tar.xz";
+  unzip -o "$ZIP" "GApps/photos.tar.xz" -d $TMP;
+  tarpath="$TMP/GApps/photos.tar.xz";
   which_dpi "photos";
-  tar -xJf "$tarpath" -C /tmp "$dpiapkpath";
-  cp -rf /tmp/$dpiapkpath/app/Photos.apk /data/app/com.google.android.apps.photos.apk;
-  rm -rf /tmp/$dpiapkpath;
-  tar -xJf "$tarpath" -C /tmp "common";
-  cp -rf /tmp/photos/common/lib. /data/app-lib/com.google.android.apps.photos/;
-  rm -rf /tmp/photos/common;
+  tar -xJf "$tarpath" -C $TMP "$dpiapkpath";
+  cp -rf $TMP/$dpiapkpath/app/Photos.apk /data/app/com.google.android.apps.photos.apk;
+  rm -rf $TMP/$dpiapkpath;
+  tar -xJf "$tarpath" -C $TMP "common";
+  cp -rf $TMP/photos/common/lib. /data/app-lib/com.google.android.apps.photos/;
+  rm -rf $TMP/photos/common;
   rm -f "$tarpath";
   gapps_list=${gapps_list/photos};
 fi;
 # Handle broken lib configuration on KitKat by putting YouTube on /data/
 if ( contains "$gapps_list" "youtube" ); then
-  unzip -o "$ZIP" "GApps/youtube.tar.xz" -d /tmp;
-  tarpath="/tmp/GApps/youtube.tar.xz";
+  unzip -o "$ZIP" "GApps/youtube.tar.xz" -d $TMP;
+  tarpath="$TMP/GApps/youtube.tar.xz";
   which_dpi "youtube";
-  tar -xJf "$tarpath" -C /tmp "$dpiapkpath";
-  cp -rf /tmp/$dpiapkpath/app/YouTube.apk /data/app/com.google.android.youtube.apk;
-  rm -rf /tmp/$dpiapkpath;
-  tar -xJf "$tarpath" -C /tmp "common";
-  cp -rf /tmp/youtube/common/lib. /data/app-lib/com.google.android.youtube/;
-  rm -rf /tmp/youtube/common;
+  tar -xJf "$tarpath" -C $TMP "$dpiapkpath";
+  cp -rf $TMP/$dpiapkpath/app/YouTube.apk /data/app/com.google.android.youtube.apk;
+  rm -rf $TMP/$dpiapkpath;
+  tar -xJf "$tarpath" -C $TMP "common";
+  cp -rf $TMP/youtube/common/lib. /data/app-lib/com.google.android.youtube/;
+  rm -rf $TMP/youtube/common;
   rm -f "$tarpath";
   gapps_list=${gapps_list/youtube};
 fi;'
