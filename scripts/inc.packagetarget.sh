@@ -29,7 +29,7 @@ commonscripts() {
   makegprop "g.prop"
   makeinstallersh "installer.sh"
   bundlexz # on arm platforms we can include our own xz binary
-  makeupdatebinary "META-INF/com/google/android/update-binary" "installer.sh" # execute as last, it contains $EXTRACTFILES from the previous commands
+  makeupdatebinary "META-INF/com/google/android/update-binary" "busybox" "installer.sh" # execute as last, it contains $EXTRACTFILES from the previous commands
   bundlelicense #optionally add a LICENSE file to the package
 }
 
@@ -61,6 +61,7 @@ bundlexz() {
   esac
   copy "$SCRIPTS/xz-resources/$xzbin" "$build/xzdec"
   EXTRACTFILES="$EXTRACTFILES xzdec"
+  CHMODXFILES="$CHMODXFILES $1"
 }
 
 bundlelicense() {
