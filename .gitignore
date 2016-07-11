@@ -22,6 +22,9 @@ local.properties
 *.bak
 *~
 
+#APKs in the non-sources opengapps repository
+*.apk
+
 # Project files
 .project
 
